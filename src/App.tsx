@@ -254,6 +254,7 @@ export function App() {
             <button
               type="button"
               onClick={() => setInferenceMode(InferenceMode.Distributed)}
+              aria-pressed={inferenceMode === InferenceMode.Distributed}
               className={cn(
                 'rounded px-2 py-1 text-[10px] font-medium transition-colors cursor-pointer',
                 inferenceMode === InferenceMode.Distributed
@@ -266,6 +267,7 @@ export function App() {
             <button
               type="button"
               onClick={() => setInferenceMode(InferenceMode.Independent)}
+              aria-pressed={inferenceMode === InferenceMode.Independent}
               className={cn(
                 'rounded px-2 py-1 text-[10px] font-medium transition-colors cursor-pointer',
                 inferenceMode === InferenceMode.Independent
@@ -273,7 +275,7 @@ export function App() {
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              Replica HA
+              Replicas
             </button>
           </div>
           <div className="text-[10px] font-mono text-muted-foreground leading-relaxed pt-1">

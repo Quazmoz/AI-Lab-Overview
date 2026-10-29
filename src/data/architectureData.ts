@@ -849,7 +849,7 @@ export const ARCHITECTURE_CONFIG: ArchitectureConfig = {
       assignedHostOrVm: '3 Clusters × 4 Mac Studio Ultra Nodes (Bare-Metal macOS)',
       physicalNodeId: 'mac-ai-c1-01',
       cpuAllocation: '432 CPU cores (144 super + 288 performance across fleet)',
-      memoryAllocation: '3,072 GB Unified Memory (896 GB usable wired Metal pool per 4-node cluster)',
+      memoryAllocation: '3,072 GB installed Unified Memory (four separate 224 GB assumed wired budgets per cluster)',
       portsAndProtocols: [
         'HTTP 8080/8081 (VLAN 30 Inference API from LiteLLM)',
         'Thunderbolt 5 JACCL RDMA (full mesh within each 4-node cluster; requires macOS 26.2+)',
@@ -1848,8 +1848,8 @@ export const ARCHITECTURE_CONFIG: ArchitectureConfig = {
 
   modelCategories: [
     {
-      id: 'cat-8b-30b',
-      rangeLabel: '8B–30B',
+      id: 'cat-8b-32b',
+      rangeLabel: '8B–32B',
       exampleModels: ['Qwen3-30B-A3B', 'Gemma-3-27B-IT', 'Llama-3.1-8B-Instruct', 'Qwen2.5-Coder-32B'],
       representativeParamsB: 30,
       recommendedMode: InferenceMode.Independent,
@@ -1876,7 +1876,7 @@ export const ARCHITECTURE_CONFIG: ArchitectureConfig = {
     {
       id: 'cat-100b-200b',
       rangeLabel: '100B–200B',
-      exampleModels: ['Mistral-Large-123B', 'Command-A-111B', 'Qwen3-235B-A22B (MoE Q4; outside 100B–200B range)'],
+      exampleModels: ['Mistral-Large-123B', 'Command-A-111B'],
       representativeParamsB: 150,
       recommendedMode: InferenceMode.Distributed,
       quantizationDefault: 'Q4_K_M',
@@ -1884,7 +1884,20 @@ export const ARCHITECTURE_CONFIG: ArchitectureConfig = {
       estimatedFootprintQ8Gb: '165–225 GB',
       singleNodeViable: true,
       distributedViable: true,
-      engineeringNotes: '4-bit fits on a single 256 GB Mac Studio; 8-bit quantization or large multi-user KV caches benefit strongly from 4-way distributed sharding across Cluster 1 (896 GB usable pool).',
+      engineeringNotes: 'Q4 weights for representative 111B–150B models may fit within one 256 GB node after runtime/KV budget. Q8, concurrent use, and distributed sharding require model-specific validation; 896 GB is a summed budget, not shared memory.',
+    },
+    {
+      id: 'cat-200b-399b',
+      rangeLabel: '200B–399B',
+      exampleModels: ['Qwen3-235B-A22B (235B total MoE parameters; 22B active)'],
+      representativeParamsB: 235,
+      recommendedMode: InferenceMode.Distributed,
+      quantizationDefault: 'Q4_K_M',
+      estimatedFootprintQ4Gb: '136–165 GB (estimated)',
+      estimatedFootprintQ8Gb: '249–280 GB (estimated)',
+      singleNodeViable: true,
+      distributedViable: true,
+      engineeringNotes: 'Weight storage depends on all 235B parameters, not only the 22B active per token. Q4 may fit on one node with a constrained KV cache, whereas Q8 weights alone exceed the illustrative 224 GB wired budget. Distributed support must be tested.',
     },
     {
       id: 'cat-400b-plus',
@@ -1894,7 +1907,7 @@ export const ARCHITECTURE_CONFIG: ArchitectureConfig = {
       recommendedMode: InferenceMode.Distributed,
       quantizationDefault: 'Q4_K_M',
       estimatedFootprintQ4Gb: '245–390 GB',
-      estimatedFootprintQ8Gb: '480–620 GB (Fits 896 GB Cluster Pool)',
+      estimatedFootprintQ8Gb: '430–715 GB (weights only; estimated)',
       singleNodeViable: false,
       distributedViable: true,
       engineeringNotes: 'Candidates for four-rank distributed inference via JACCL over a six-cable mesh. The 896 GB total is a per-node summed heuristic, not directly addressable memory; actual model sharding, KV cache and 128K context support need validation.',
@@ -2003,7 +2016,7 @@ export const ARCHITECTURE_CONFIG: ArchitectureConfig = {
         {
           id: 'p3-mlx-dist',
           title: '4-Way Distributed MoE Execution',
-          detail: 'Run partitioned 405B / 671B MoE models across Cluster 1 using 4-rank MLX distributed inference with validated model parallelism (896 GB pool).',
+          detail: 'Qualify supported 405B / 671B checkpoints across four MLX/JACCL ranks; test partitioning against each Mac’s independently measured memory budget (not a pooled address space).',
           defaultStatus: RoadmapItemStatus.NotStarted,
           category: 'Distributed AI',
         },

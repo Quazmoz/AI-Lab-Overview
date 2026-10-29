@@ -435,18 +435,18 @@ export const MlxRuntimeNode: React.FC<NodeProps> = ({ data }) => {
               MLX Inference Server
             </div>
             <div className="text-[10px] font-mono text-violet-300">
-              macOS Metal 3 · MLX-LM
+              macOS Metal · MLX-LM
             </div>
           </div>
         </div>
         <div className="mt-2.5 rounded-md bg-secondary/70 px-2.5 py-1.5 text-[11px] text-secondary-foreground">
           {d.inferenceMode === InferenceMode.Distributed ? (
             <span>
-              <strong className="text-violet-300">Distributed Coordinator:</strong> Shards 1 large model across both Macs
+              <strong className="text-violet-300">Distributed Coordinator:</strong> Candidate four-rank MLX/JACCL job across Cluster 1; model support unverified
             </span>
           ) : (
             <span>
-              <strong className="text-cyan-300">Independent Endpoints:</strong> Routes requests to either Mac replica
+              <strong className="text-cyan-300">Independent Endpoints:</strong> Candidate per-Mac model routes; balancing and failover unverified
             </span>
           )}
         </div>
@@ -634,7 +634,7 @@ export const MacClusterGroupNode: React.FC<NodeProps> = ({ data }) => {
             {d.totalRamGb} GB RAM
           </div>
           <div className="text-[9px] font-mono text-muted-foreground">
-            {d.usablePoolGb} GB Usable
+            {d.usablePoolGb} GB Est. Wired
           </div>
         </div>
       </div>
@@ -665,8 +665,8 @@ export const MacClusterGroupNode: React.FC<NodeProps> = ({ data }) => {
             </div>
             <div className="mt-1 text-[9px] font-medium text-secondary-foreground truncate">
               {d.inferenceMode === InferenceMode.Distributed
-                ? `Shard ${idx} (25% Layers)`
-                : `Replica ${String.fromCharCode(65 + idx)} (Standalone)`}
+                ? `Rank ${idx} (partition TBD)`
+                : `Node ${String.fromCharCode(65 + idx)} (Standalone)`}
             </div>
           </button>
         ))}

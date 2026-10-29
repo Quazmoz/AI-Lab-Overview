@@ -306,7 +306,7 @@ export function buildArchitectureTopologyGraph(
         clusterId: 'mac-cluster-02',
         clusterNumber: 2,
         title: 'High-Throughput & Swarms',
-        purpose: 'Llama-3.3-70B / Qwen-32B Active Replicas',
+        purpose: 'Llama-3.3-70B / Qwen-32B Planned Replicas',
         totalRamGb: 1024,
         usablePoolGb: 896,
         bandwidth: '4.8 TB/s summed local',

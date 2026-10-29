@@ -21,6 +21,8 @@ An interactive, browser-only reference architecture for a **proposed on-premises
 
 The application supports dark/light themes, keyboard search via **Cmd/Ctrl+K**, and clickable infrastructure service cards. Roadmap state and theme preference are stored in `localStorage`, not synchronized to GitHub or a backend.
 
+The published bundle is a **static client-side React application**. The dependency manifest intentionally excludes server-only Express and environment loaders, the Gemini SDK, and unused runtime packages; adding a live API requires a separate authenticated backend and threat model.
+
 ## Reference architecture at a glance
 
 | Plane | Planned components | Responsibilities |
@@ -70,6 +72,8 @@ bun run preview              # Preview the most recent dist/ artifact
 ```
 
 The Pages-specific build and verifier validate the GitHub Pages subdirectory output, including JS/CSS and favicon URLs. Run preview with the same base path as the build when testing project-site navigation.
+
+For an end-to-end browser check, visit the [live Pages URL](https://quazmoz.github.io/AI-Lab-Overview/), navigate all eight sections, search for `qdrant`, switch the theme, try model-sizing controls, and exercise export and local roadmap state. See the [browser smoke checklist](docs/TECHNICAL_VALIDATION.md#browser-smoke-checklist) for specific acceptance criteria. A build passing does not guarantee that downloaded diagrams are visually complete or that the UI works on every device.
 
 ### Source layout
 
