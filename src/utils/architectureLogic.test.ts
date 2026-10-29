@@ -8,6 +8,7 @@ import {
   getConnectedGraphIds,
 } from './architectureLogic';
 import { ARCHITECTURE_CONFIG } from '../data/architectureData';
+import { candidateRuntime, getWorkloadDeploymentOption, WORKLOAD_DEPLOYMENT_OPTIONS } from '../data/workloadDeployment';
 import { InferenceMode, RoadmapItemStatus, ServiceCategory } from '../types/architecture';
 
 test('671B total-parameter Q4 MoE exceeds single Mac budget but is a four-rank memory candidate', () => {
@@ -198,4 +199,37 @@ test('MoE sizing uses total stored parameters, not just active parameters', () =
   assert.ok(deepSeek.weightsGb > 380, '671B total Q4 weights must not use active params');
   assert.equal(deepSeek.nodeCount, 4);
   assert.ok(deepSeek.perNodeAllocatedGb > 95);
+});
+
+test('supporting Linux services have typed runtime candidates without altering bare-metal inference', () => {
+  const services = new Map(ARCHITECTURE_CONFIG.services.map((service) => [service.id, service]));
+  const baselineIds = new Set(ARCHITECTURE_CONFIG.proxmoxVms.flatMap((vm) => vm.serviceIds));
+  const optionIds = WORKLOAD_DEPLOYMENT_OPTIONS.map((option) => option.serviceId);
+
+  assert.equal(new Set(optionIds).size, optionIds.length, 'Each service has one runtime plan');
+  assert.deepEqual(new Set(optionIds), baselineIds, 'Every VM-hosted service has a plan and no other services are containerized');
+
+  for (const option of WORKLOAD_DEPLOYMENT_OPTIONS) {
+    const service = services.get(option.serviceId);
+    assert.ok(service, 'Unknown service ' + option.serviceId);
+    assert.ok(option.supportedRuntimes.includes('vm'), 'Baseline VM must always be supported');
+    assert.ok(option.supportedRuntimes.includes('docker'), 'Docker candidate must be documented for Linux services');
+    assert.ok(option.supportedRuntimes.includes(option.preferredRuntime), 'Preferred runtime must be eligible');
+    assert.equal(candidateRuntime(service, 'vm'), 'vm');
+    assert.equal(candidateRuntime(service, 'docker'), 'docker');
+    assert.equal(
+      candidateRuntime(service, 'kubernetes'),
+      option.supportedRuntimes.includes('kubernetes') ? 'kubernetes' : 'vm'
+    );
+  }
+
+  const eligibleKubernetes = WORKLOAD_DEPLOYMENT_OPTIONS
+    .filter((option) => option.supportedRuntimes.includes('kubernetes'))
+    .map((option) => option.serviceId)
+    .sort();
+  assert.deepEqual(eligibleKubernetes, ['svc-grafana', 'svc-litellm', 'svc-mcp', 'svc-n8n', 'svc-otel']);
+  assert.equal(getWorkloadDeploymentOption('svc-mlx-server'), null);
+  assert.equal(getWorkloadDeploymentOption('client-developers'), null);
+  assert.equal(candidateRuntime(services.get('svc-mlx-server')!, 'kubernetes'), null);
+  assert.equal(candidateRuntime(services.get('svc-postgres')!, 'kubernetes'), 'vm');
 });

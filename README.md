@@ -2,7 +2,7 @@
 
 [![GitHub Pages](https://github.com/Quazmoz/AI-Lab-Overview/actions/workflows/pages.yml/badge.svg)](https://github.com/Quazmoz/AI-Lab-Overview/actions/workflows/pages.yml)
 
-An interactive, browser-only reference architecture for a **proposed on-premises AI lab** combining Apple Silicon inference compute with a Proxmox-hosted AI service plane.
+An interactive, browser-only reference architecture for a **proposed on-premises AI lab** combining Apple Silicon inference compute with a Proxmox-hosted service plane and optional Docker Compose or Kubernetes delivery for eligible supporting workloads.
 
 **[Open the architecture explorer](https://quazmoz.github.io/AI-Lab-Overview/)** (GitHub Pages; deployment must be enabled in repository settings).
 
@@ -14,6 +14,7 @@ An interactive, browser-only reference architecture for a **proposed on-premises
 - **Architecture Topology:** interactive dependency graph, inference-mode switch, filtering, service detail sheets, PNG/SVG export.
 - **Mac Studio Cluster:** three four-node clusters, individual node specifications, model-memory sizing heuristic, and independent-vs-distributed comparison.
 - **Proxmox Infrastructure:** planned host baseline and six VM allocations.
+- **Docker & Kubernetes Options:** interactive comparison of VM, Docker Compose and Kubernetes placements for eligible supporting workloads, with state and security constraints.
 - **Services & Dependencies:** LiteLLM, MLX-LM, n8n, PostgreSQL, Redis, Qdrant, MCP servers, and operational components.
 - **Observability:** synthetic OpenTelemetry, Prometheus, Grafana, Loki, and Tempo examples.
 - **Network Architecture:** segmented Ethernet VLANs and proposed Thunderbolt 5 JACCL meshes.
@@ -29,9 +30,25 @@ The published bundle is a **static client-side React application**. The dependen
 | --- | --- | --- |
 | Compute | 12 × Mac Studio M5 Ultra, grouped into 3 clusters of 4 | MLX/MLX-LM local inference, independent replicas, experimental four-rank distributed inference, embeddings and fine-tuning |
 | Interconnect | 3 isolated Thunderbolt 5 full meshes; **6 direct cables per cluster / 18 total** | JACCL RDMA between the four peers of each cluster; no shared memory fabric across all 12 Macs |
-| Service | 1 Proxmox VE host, 6 KVM VMs | LiteLLM gateway, n8n workers, PostgreSQL/Redis, Qdrant, MCP execution, observability |
+| Service | 1 Proxmox VE host, 6 baseline KVM VMs; optional containers or extra Kubernetes guest tier | LiteLLM gateway, n8n workers, PostgreSQL/Redis, Qdrant, MCP execution, observability |
 | Network | 4 planned Ethernet VLANs plus point-to-point Thunderbolt links | Management, applications, AI compute, and backup/storage segmentation |
 | Observability | OTel Collector, Prometheus, Loki, Tempo, Grafana | Metrics, logs, traces, dashboards; all signals shown in the UI are simulated |
+
+### Optional service runtimes: VM, Docker Compose and Kubernetes
+
+The site starts from **six planned Linux KVM VMs**, each with a documented service role. The **Docker Compose** option packages Linux workloads inside those VMs; it does not run the inference engine in a container or remove VM/VLAN isolation. The **Kubernetes** option is a separately sized set of Linux guest VMs on the Proxmox service plane, and it applies only to eligible applications. Selecting an option in the site changes a **planning comparison**, not the actual architecture graph, a live resource, or the six baseline VM budget.
+
+| Workload group | VM baseline | Docker Compose inside Linux VM | Kubernetes guest tier |
+| --- | --- | --- | --- |
+| LiteLLM gateway, n8n, MCP servers, OTel Collector | Supported | Candidate | Candidate (requires extra control-plane/worker VMs) |
+| Grafana | Supported | Candidate with persistent config/database | Candidate with persistent config/database |
+| PostgreSQL, Redis, Qdrant | Preferred baseline | Candidate with durable volumes, backups, recovery | Deferred until storage operators and recovery are qualified |
+| Prometheus, Loki, Tempo | Preferred baseline | Candidate with durable metrics/log/trace storage | Deferred for POC simplicity |
+| MLX / MLX-LM, Mac Studio inference | Bare-metal macOS, outside this comparison | Not part of this proposal | Not part of this proposal |
+
+The six-VM CPU and RAM calculations **exclude Kubernetes guest nodes**. A single Proxmox host is a single hardware failure domain even with multiple guest nodes. Before enabling a containerized option, qualify image provenance, secret handling, least-privilege egress, resource limits, durability/restore, queue recovery and rollback. Keep LiteLLM as the governed API entry point; preserve existing VLAN segmentation and the isolated Mac inference plane.
+
+The [interactive runtime comparison](https://quazmoz.github.io/AI-Lab-Overview/) and [workload deployment catalog](src/data/workloadDeployment.ts) provide the per-service details. They are reference designs, not ready-to-apply production manifests.
 
 ### Validated hardware baseline versus assumptions
 
@@ -73,13 +90,14 @@ bun run preview              # Preview the most recent dist/ artifact
 
 The Pages-specific build and verifier validate the GitHub Pages subdirectory output, including JS/CSS and favicon URLs. Run preview with the same base path as the build when testing project-site navigation.
 
-For an end-to-end browser check, visit the [live Pages URL](https://quazmoz.github.io/AI-Lab-Overview/), navigate all eight sections, search for `qdrant`, switch the theme, try model-sizing controls, and exercise export and local roadmap state. See the [browser smoke checklist](docs/TECHNICAL_VALIDATION.md#browser-smoke-checklist) for specific acceptance criteria. A build passing does not guarantee that downloaded diagrams are visually complete or that the UI works on every device.
+For an end-to-end browser check, visit the [live Pages URL](https://quazmoz.github.io/AI-Lab-Overview/), navigate all nine sections, search for `qdrant`, switch the theme, try model-sizing controls, and exercise export and local roadmap state. See the [browser smoke checklist](docs/TECHNICAL_VALIDATION.md#browser-smoke-checklist) for specific acceptance criteria. A build passing does not guarantee that downloaded diagrams are visually complete or that the UI works on every device.
 
 ### Source layout
 
 | Path | Purpose |
 | --- | --- |
 | `src/data/architectureData.ts` | Proposed hardware, VMs, services, connections, VLANs, models, roadmap |
+| `src/data/workloadDeployment.ts` | Eligible Linux runtime options and per-service deployment guardrails |
 | `src/data/demoTelemetry.ts` | Synthetic KPIs, logs, traces, availability (never live data) |
 | `src/services/infrastructureAdapter.ts` | Read-only `PlanningArchitectureProvider` contract, extension seam for future live integrations |
 | `src/utils/architectureLogic.ts` | Memory planning, filtering, roadmap and VM calculations |
@@ -122,6 +140,7 @@ GitHub Pages is publicly accessible, even in setups where its source repository 
 - **No live telemetry:** expected; `PlanningArchitectureProvider` always returns synthetic snapshots.
 - **Roadmap changes disappear across devices:** expected; local browser storage is intentionally not synchronized.
 - **Model fit says estimated:** intentional; actual memory and JACCL behavior require physical Mac validation as described in the [acceptance checklist](docs/TECHNICAL_VALIDATION.md).
+- **Kubernetes not visible in the physical topology:** intentional. It is an optional planning overlay until additional Linux guest sizing, network/storage design and runtime qualification are completed.
 
 ## References
 

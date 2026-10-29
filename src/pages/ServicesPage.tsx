@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { Input } from '@/src/components/ui/input';
 import { renderServiceIcon } from '@/src/components/topology/TopologyNodes';
+import { getWorkloadDeploymentOption } from '@/src/data/workloadDeployment';
 import { cn } from '@/src/lib/utils';
 
 interface ServicesPageProps {
@@ -56,7 +57,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
             Services, Placement & Dependency Matrix
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Click any service row to open full resource allocations, reference config snippets, security notes, and telemetry signals.
+            Inspect baseline VM placements, optional Docker/Kubernetes eligibility, resource allocations, security notes and telemetry signals.
           </p>
         </div>
 
@@ -124,6 +125,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                   <tr className="border-b border-border text-muted-foreground">
                     <th className="py-2.5 pr-4 font-medium">Component</th>
                     <th className="py-2.5 px-4 font-medium">Assigned Host / VM</th>
+                    <th className="py-2.5 px-4 font-medium">Runtime Options</th>
                     <th className="py-2.5 px-4 font-medium">Proposed Compute / RAM</th>
                     <th className="py-2.5 px-4 font-medium">Network & Ports</th>
                     <th className="py-2.5 px-4 font-medium text-right">Connections</th>
@@ -138,6 +140,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                       inferenceMode,
                       true
                     );
+                    const runtimePlan = getWorkloadDeploymentOption(svc.id);
                     return (
                       <tr
                         key={svc.id}
@@ -159,6 +162,15 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                         </td>
                         <td className="py-3 px-4 font-mono text-[11px] text-foreground whitespace-nowrap">
                           {svc.assignedHostOrVm}
+                        </td>
+                        <td className="py-3 px-4 text-[11px] text-muted-foreground min-w-[150px]">
+                          {runtimePlan ? (
+                            <span>{runtimePlan.supportedRuntimes.map((runtime) =>
+                              runtime === 'vm' ? 'VM' : runtime === 'docker' ? 'Docker' : 'K8s'
+                            ).join(' · ')}</span>
+                          ) : (
+                            <span>{svc.category === ServiceCategory.Inference ? 'Bare-metal macOS' : 'External consumer'}</span>
+                          )}
                         </td>
                         <td className="py-3 px-4 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
                           <div>{svc.cpuAllocation}</div>

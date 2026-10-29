@@ -2045,6 +2045,13 @@ export const ARCHITECTURE_CONFIG: ArchitectureConfig = {
           category: 'Data Tier',
         },
         {
+          id: 'p4-runtime-options',
+          title: 'Optional Docker / Kubernetes runtime qualification',
+          detail: 'Compare Compose inside existing Linux VMs with an independently sized Kubernetes-on-Linux-VM tier. Validate workload eligibility, durable volumes, network policy, image provenance, rollback, and host failure domains before changing the baseline.',
+          defaultStatus: RoadmapItemStatus.NotStarted,
+          category: 'Platform Runtime',
+        },
+        {
           id: 'p4-n8n',
           title: 'n8n',
           detail: 'Deploy n8n coordinator and queue workers on ai-automation-01 integrated with PostgreSQL, Redis, and LiteLLM.',
