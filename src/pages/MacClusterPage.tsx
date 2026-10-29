@@ -29,12 +29,25 @@ import {
 } from '@/src/utils/architectureLogic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { cn } from '@/src/lib/utils';
+import {
+  DEFAULT_MAC_PROFILE_ID,
+  DEFAULT_MAC_STORAGE_TB,
+  illustrativeWiredGb,
+  MAC_HARDWARE_PROFILES,
+  MAC_STORAGE_OPTIONS_TB,
+  type MacHardwareProfile,
+  type MacProfileId,
+} from '@/src/data/macHardwareProfiles';
 
 interface MacClusterPageProps {
   config: ArchitectureConfig;
   inferenceMode: InferenceMode;
   onChangeInferenceMode: (mode: InferenceMode) => void;
   onSelectService: (serviceId: string) => void;
+  macProfile: MacHardwareProfile;
+  onChangeMacProfile: (profile: MacProfileId) => void;
+  macStorageTb: number;
+  onChangeMacStorageTb: (storageTb: number) => void;
 }
 
 const MODEL_PRESETS: Array<{ label: string; paramsB: number; category: string }> = [
@@ -59,9 +72,18 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
   inferenceMode,
   onChangeInferenceMode,
   onSelectService,
+  macProfile,
+  onChangeMacProfile,
+  macStorageTb,
+  onChangeMacStorageTb,
 }) => {
   const allMacNodes = config.physicalNodes.filter((n) => n.nodeType === 'mac-studio');
   const clusters = config.macClusters || [];
+  const wiredPerNodeGb = illustrativeWiredGb(macProfile.memoryGb);
+  const totalFleetRamGb = allMacNodes.reduce((total, node) => total + node.memoryGb, 0);
+  const totalFleetWiredGb = allMacNodes.length * wiredPerNodeGb;
+  const totalFleetGpuCores = allMacNodes.length * macProfile.gpuCores;
+  const totalFleetBandwidthTbps = allMacNodes.length * macProfile.bandwidthTbps;
 
   const [selectedClusterId, setSelectedClusterId] = useState<string>('mac-cluster-01');
   const [selectedParamsB, setSelectedParamsB] = useState<number>(671);
@@ -85,9 +107,10 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
         quantization,
         contextTokens,
         inferenceMode,
-        4
+        4,
+        wiredPerNodeGb
       ),
-    [selectedParamsB, quantization, contextTokens, inferenceMode]
+    [selectedParamsB, quantization, contextTokens, inferenceMode, wiredPerNodeGb]
   );
 
   // Bar chart data for the current 4 nodes (or all 12 nodes in fleet view)
@@ -98,7 +121,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
     const weights = Number((memoryPlan.weightsGb * perNodeFactor).toFixed(1));
     const kvCache = Number((memoryPlan.kvCacheGb * perNodeFactor).toFixed(1));
     const runtime = Number((memoryPlan.runtimeOverheadGb * perNodeFactor).toFixed(1));
-    const osReserved = 32;
+    const osReserved = macProfile.memoryGb - wiredPerNodeGb;
 
     return nodesToChart.map((node) => ({
       node: node.hostname,
@@ -107,14 +130,24 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
       MLXOverhead: runtime,
       macOSReserved: osReserved,
     }));
-  }, [memoryPlan, inferenceMode, currentClusterNodes, allMacNodes, isFleetOverview]);
+  }, [memoryPlan, inferenceMode, currentClusterNodes, allMacNodes, isFleetOverview, macProfile.memoryGb, wiredPerNodeGb]);
+
+  const categorySingleNodeFit = useMemo(
+    () => new Map(config.modelCategories.map((category) => [
+      category.id,
+      calculateModelMemoryPlan(
+        category.representativeParamsB, 'Q4_K_M', 8192, InferenceMode.Independent, 4, wiredPerNodeGb
+      ).fitStatus,
+    ])),
+    [config.modelCategories, wiredPerNodeGb]
+  );
 
   // 16 visual blocks for 4 shards: 4 blocks per node (25% each)
   const shardBlocks = Array.from({ length: 4 }, (_, idx) => idx + 1);
 
   return (
     <div className="space-y-6">
-      {/* Top Banner: 3 Clusters × 4 Nodes = 12 Nodes Total / 3,072 GB RAM */}
+      {/* Hardware scenario applies across all three four-node clusters. */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-xl border border-border bg-card p-5">
         <div>
           <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
@@ -122,13 +155,13 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
             <span aria-hidden="true">·</span>
             <span>Bare-Metal Apple Silicon Compute</span>
             <span aria-hidden="true">·</span>
-            <span className="text-cyan-400">3 Clusters · 12 Nodes · 3,072 GB Unified Memory</span>
+            <span className="text-cyan-400">3 Clusters · {allMacNodes.length} Nodes · {totalFleetRamGb.toLocaleString()} GB Unified Memory</span>
           </div>
           <h2 className="mt-1 text-lg font-semibold text-foreground">
             Mac Studio M5 Ultra Compute Fleet & Thunderbolt 5 RDMA Fabric
           </h2>
           <p className="mt-1 text-xs text-muted-foreground max-w-3xl leading-relaxed">
-            Three proposed 4-node clusters (1,024 GB unified memory each, 256 GB per Mac). Each JACCL mesh needs six direct Thunderbolt 5 cables; model support, effective bandwidth and throughput require hardware validation.
+            Three proposed 4-node clusters ({(4 * macProfile.memoryGb).toLocaleString()} GB each, {macProfile.memoryGb} GB per Mac). Each JACCL mesh needs six direct Thunderbolt 5 cables; model support, effective bandwidth and throughput require hardware validation.
           </p>
         </div>
 
@@ -169,6 +202,62 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
         </div>
       </div>
 
+      <Card className="border-cyan-500/35">
+        <CardHeader className="pb-3">
+          <CardTitle>Mac Studio Hardware Scenario</CardTitle>
+          <CardDescription>
+            Switch among Apple-listed M5 Ultra configurations. This updates the overview, topology, node details and memory-fit estimates.
+            Choices are local planning scenarios, not purchased or deployed hardware. The per-node wired budget reserves an illustrative 12.5% for macOS/runtime.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div role="group" aria-label="Mac Studio processor and memory configuration" className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            {MAC_HARDWARE_PROFILES.map((profile) => (
+              <button
+                key={profile.id}
+                type="button"
+                aria-pressed={macProfile.id === profile.id}
+                onClick={() => onChangeMacProfile(profile.id)}
+                className={cn(
+                  'rounded-lg border p-3 text-left text-xs transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  macProfile.id === profile.id ? 'border-cyan-400 bg-cyan-500/10' : 'border-border bg-muted/30 hover:bg-accent'
+                )}
+              >
+                <span className="block font-semibold text-foreground">{profile.name}</span>
+                <span className="mt-1 block font-mono text-cyan-300">{profile.memoryGb} GB · {profile.cpuCores} CPU / {profile.gpuCores} GPU cores</span>
+                <span className="mt-1 block text-muted-foreground">{profile.neuralEngineCores}-core Neural Engine · {profile.bandwidthTbps} TB/s rated</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <label htmlFor="mac-ssd-size" className="block text-xs font-semibold text-foreground mb-1">Local SSD per Mac Studio</label>
+              <select
+                id="mac-ssd-size"
+                value={macStorageTb}
+                onChange={(event) => onChangeMacStorageTb(Number(event.target.value))}
+                className="rounded-md border border-border bg-card px-3 py-2 text-xs text-foreground"
+              >
+                {MAC_STORAGE_OPTIONS_TB.map((value) => <option key={value} value={value}>{value} TB SSD</option>)}
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onChangeMacProfile(DEFAULT_MAC_PROFILE_ID);
+                onChangeMacStorageTb(DEFAULT_MAC_STORAGE_TB);
+              }}
+              className="rounded-md border border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            >
+              Reset to 256 GB / 4 TB baseline
+            </button>
+          </div>
+          <p className="text-[11px] text-amber-300">
+            Memory fit is heuristic, not proof of Metal wired limits, MLX/JACCL model support, performance or high availability. All 12 Mac nodes use the selected scenario.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Cluster Selector Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
         {clusters.map((cluster) => {
@@ -189,7 +278,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
               <Server className="h-3.5 w-3.5 text-violet-400" />
               <span>{cluster.name}</span>
               <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                4× 256G (1 TB)
+                {cluster.nodeCount}× {cluster.ramPerNodeGb} GB ({cluster.totalRamGb.toLocaleString()} GB)
               </span>
             </button>
           );
@@ -208,7 +297,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
           <Cpu className="h-3.5 w-3.5 text-cyan-400" />
           <span>Fleet Overview (All 12 Nodes)</span>
           <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-            3,072 GB RAM
+            {totalFleetRamGb.toLocaleString()} GB RAM
           </span>
         </button>
       </div>
@@ -231,7 +320,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                 <div>
                   <span className="text-muted-foreground block text-[10px]">Total RAM</span>
                   <span className="font-semibold text-foreground text-sm">
-                    {activeCluster.totalRamGb} GB (4× 256 GB)
+                    {activeCluster.totalRamGb.toLocaleString()} GB ({activeCluster.nodeCount}× {activeCluster.ramPerNodeGb} GB)
                   </span>
                 </div>
                 <div>
@@ -294,20 +383,20 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                 <div className="flex justify-between gap-1">
                   <span className="text-muted-foreground">Memory</span>
                   <span className="font-mono font-semibold text-foreground">
-                    256 GB Unified Memory
+                    {node.memoryGb} GB Unified Memory
                   </span>
                 </div>
                 <div className="flex justify-between gap-1">
                   <span className="text-muted-foreground">Bandwidth</span>
-                  <span className="font-mono text-foreground">1.2 TB/s rated</span>
+                  <span className="font-mono text-foreground">{macProfile.bandwidthTbps} TB/s rated</span>
                 </div>
                 <div className="flex justify-between gap-1">
                   <span className="text-muted-foreground">Processor</span>
-                  <span className="text-right text-foreground truncate">Apple M5 Ultra (36-core)</span>
+                  <span className="text-right text-foreground truncate">Apple M5 Ultra ({macProfile.cpuCores}-core)</span>
                 </div>
                 <div className="flex justify-between gap-1">
                   <span className="text-muted-foreground">GPU (Metal)</span>
-                  <span className="text-right text-foreground">80-core GPU</span>
+                  <span className="text-right text-foreground">{macProfile.gpuCores}-core GPU</span>
                 </div>
                 <div className="flex justify-between gap-1">
                   <span className="text-muted-foreground">10GbE Compute</span>
@@ -390,7 +479,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                     <span className="rounded bg-violet-500/20 px-2 py-0.5 font-mono text-xs font-semibold text-violet-300 border border-violet-400/30">
                       Cluster {c.clusterNumber}
                     </span>
-                    <span className="text-xs font-mono text-muted-foreground">4 Nodes · 1,024 GB</span>
+                    <span className="text-xs font-mono text-muted-foreground">{c.nodeCount} Nodes · {c.totalRamGb.toLocaleString()} GB</span>
                   </div>
                   <CardTitle className="text-sm mt-1">{c.name}</CardTitle>
                   <CardDescription className="text-xs">{c.purpose}</CardDescription>
@@ -430,19 +519,19 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                 </div>
                 <div>
                   <span className="block text-[11px] text-muted-foreground">Combined RAM</span>
-                  <span className="text-base font-bold text-cyan-300">3,072 GB (3.07 TB)</span>
+                  <span className="text-base font-bold text-cyan-300">{totalFleetRamGb.toLocaleString()} GB</span>
                 </div>
                 <div>
                   <span className="block text-[11px] text-muted-foreground">Usable Wired Metal</span>
-                  <span className="text-base font-bold text-violet-300">2,688 GB</span>
+                  <span className="text-base font-bold text-violet-300">{totalFleetWiredGb.toLocaleString()} GB</span>
                 </div>
                 <div>
                   <span className="block text-[11px] text-muted-foreground">Apple Silicon GPU</span>
-                  <span className="text-base font-bold text-foreground">960 Cores</span>
+                  <span className="text-base font-bold text-foreground">{totalFleetGpuCores.toLocaleString()} Cores</span>
                 </div>
                 <div>
                   <span className="block text-[11px] text-muted-foreground">Aggregate Bandwidth</span>
-                  <span className="text-base font-bold text-sky-400">~9.8 TB/s</span>
+                  <span className="text-base font-bold text-sky-400">{totalFleetBandwidthTbps.toFixed(1)} TB/s</span>
                 </div>
               </div>
             </CardContent>
@@ -457,7 +546,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
           <CardHeader>
             <CardTitle>4-Node Cluster Memory Sizing & Sharding Calculator</CardTitle>
             <CardDescription>
-              Illustrative per-rank memory estimates across four Mac Studios (1,024 GB installed). The 896 GB figure sums four assumed 224 GB wired budgets; memory is not shared between Macs.
+              Illustrative per-rank estimates across four Macs ({(macProfile.memoryGb * 4).toLocaleString()} GB installed). The {wiredPerNodeGb * 4} GB cluster budget sums four separate {wiredPerNodeGb} GB illustrative wired allowances; memory is not shared.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -563,7 +652,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                         : 'text-emerald-400'
                   )}
                 >
-                  {memoryPlan.perNodeAllocatedGb} / 224 GB
+                  {memoryPlan.perNodeAllocatedGb} / {memoryPlan.perNodeUsableCapGb} GB
                 </div>
               </div>
             </div>
@@ -591,8 +680,8 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                   <span>
                     <strong>Exceeds Usable Memory ({memoryPlan.totalRequiredGb} GB required):</strong>{' '}
                     {inferenceMode === InferenceMode.Independent
-                      ? 'A supported four-rank model might fit across 4 Macs with separate 224 GB assumed wired budgets. Select lower quantization or validate actual sharding and memory use.'
-                      : 'Estimated per-node allocation exceeds the illustrative 224 GB wired budget. Reduce context or quantization and verify on hardware.'}
+                      ? 'A supported four-rank model may fit within four independently budgeted Macs; validate model-specific sharding and memory on hardware.'
+                      : 'Estimated per-node allocation exceeds the selected illustrative wired budget. Reduce context or quantization and verify on hardware.'}
                   </span>
                 ) : (
                   <span>
@@ -657,7 +746,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
           <CardHeader>
             <CardTitle>Unified Memory Allocation Per Node (GB)</CardTitle>
             <CardDescription>
-              Estimated allocation against a proposed 224 GB/node usable budget; real wired limits, KV cache, and memory pressure depend on the macOS build and model.
+              Estimated allocation against {wiredPerNodeGb} GB/node illustrative wired budget with {macProfile.memoryGb} GB physical RAM; real limits and overhead require hardware measurements.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 min-h-[300px]">
@@ -665,7 +754,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
               <BarChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                 <XAxis dataKey="node" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                <YAxis domain={[0, 280]} tick={{ fill: '#94a3b8', fontSize: 11 }} unit=" GB" />
+                <YAxis domain={[0, Math.max(Math.ceil(macProfile.memoryGb * 1.1), Math.ceil(memoryPlan.perNodeAllocatedGb * 1.1))]} tick={{ fill: '#94a3b8', fontSize: 11 }} unit=" GB" />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#0f1624',
@@ -675,11 +764,11 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                 />
                 <Legend wrapperStyle={{ fontSize: '11px' }} />
                 <ReferenceLine
-                  y={256}
+                  y={macProfile.memoryGb}
                   stroke="#ef4444"
                   strokeDasharray="4 4"
                   label={{
-                    value: '256 GB Physical Ceiling',
+                    value: macProfile.memoryGb + ' GB Physical Ceiling',
                     fill: '#f87171',
                     fontSize: 10,
                     position: 'top',
@@ -702,7 +791,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
             <div>
               <CardTitle>Planned Model Size Categories & Serving Matrix</CardTitle>
               <CardDescription>
-                Reference sizing across 8B–32B, 70B, 100B–200B, 200B–399B, and 400B+ parameter tiers on 3 clusters with 4 nodes each (256 GB RAM each).
+                Reference Q4 memory-only sizing across representative model tiers on 3 clusters of 4 Macs ({macProfile.memoryGb} GB per Mac). Results are illustrative and do not certify sharding.
               </CardDescription>
             </div>
             <Cpu className="h-4 w-4 text-violet-400" />
@@ -717,8 +806,8 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                   <th className="py-2.5 px-4 font-medium">Candidate Models (Examples)</th>
                   <th className="py-2.5 px-4 font-medium text-right">Est. 4-Bit</th>
                   <th className="py-2.5 px-4 font-medium text-right">Est. 8-Bit</th>
-                  <th className="py-2.5 px-4 font-medium">Single Mac (256 GB)</th>
-                  <th className="py-2.5 px-4 font-medium">4-Node Cluster (1,024 GB)</th>
+                  <th className="py-2.5 px-4 font-medium">Q4 Single Mac ({macProfile.memoryGb} GB)</th>
+                  <th className="py-2.5 px-4 font-medium">4-Node Cluster ({(4 * macProfile.memoryGb).toLocaleString()} GB)</th>
                   <th className="py-2.5 pl-4 font-medium">Target Cluster Assignment</th>
                 </tr>
               </thead>
@@ -738,10 +827,10 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                       {cat.estimatedFootprintQ8Gb}
                     </td>
                     <td className="py-3 px-4 font-mono whitespace-nowrap">
-                      {cat.singleNodeViable ? (
-                        <span className="text-emerald-400">Viable (Standalone)</span>
+                      {categorySingleNodeFit.get(cat.id) !== 'exceeds' ? (
+                        <span className="text-emerald-400">Memory candidate</span>
                       ) : (
-                        <span className="text-amber-400">Requires Cluster Sharding</span>
+                        <span className="text-amber-400">Exceeds node budget</span>
                       )}
                     </td>
                     <td className="py-3 px-4 font-mono whitespace-nowrap text-foreground">

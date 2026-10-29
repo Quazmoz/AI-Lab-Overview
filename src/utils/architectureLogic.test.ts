@@ -8,6 +8,14 @@ import {
   getConnectedGraphIds,
 } from './architectureLogic';
 import { ARCHITECTURE_CONFIG } from '../data/architectureData';
+import {
+  applyMacHardwareScenario,
+  DEFAULT_MAC_PROFILE_ID,
+  getMacHardwareProfile,
+  getMacStorageTb,
+  illustrativeWiredGb,
+  MAC_HARDWARE_PROFILES,
+} from '../data/macHardwareProfiles';
 import { candidateRuntime, getWorkloadDeploymentOption, WORKLOAD_DEPLOYMENT_OPTIONS } from '../data/workloadDeployment';
 import { InferenceMode, RoadmapItemStatus, ServiceCategory } from '../types/architecture';
 
@@ -232,4 +240,55 @@ test('supporting Linux services have typed runtime candidates without altering b
   assert.equal(getWorkloadDeploymentOption('client-developers'), null);
   assert.equal(candidateRuntime(services.get('svc-mlx-server')!, 'kubernetes'), null);
   assert.equal(candidateRuntime(services.get('svc-postgres')!, 'kubernetes'), 'vm');
+});
+
+test('Apple-listed M5 Ultra scenarios update the full fleet without mutating the baseline', () => {
+  const originalNode = ARCHITECTURE_CONFIG.physicalNodes.find((node) => node.nodeType === 'mac-studio')!;
+  const originalCluster = ARCHITECTURE_CONFIG.macClusters[0];
+  for (const profile of MAC_HARDWARE_PROFILES) {
+    const scenario = applyMacHardwareScenario(ARCHITECTURE_CONFIG, profile, 8);
+    const nodes = scenario.physicalNodes.filter((node) => node.nodeType === 'mac-studio');
+    const budget = illustrativeWiredGb(profile.memoryGb);
+    assert.equal(nodes.length, 12);
+    assert.ok(nodes.every((node) =>
+      node.memoryGb === profile.memoryGb
+      && node.cpuSpec.startsWith(profile.cpuCores + '-core')
+      && node.gpuSpec.startsWith(profile.gpuCores + '-core')
+      && node.storageSpec.includes('8 TB')
+    ));
+    assert.equal(nodes.reduce((sum, node) => sum + node.memoryGb, 0), 12 * profile.memoryGb);
+    assert.ok(scenario.macClusters.every((cluster) =>
+      cluster.ramPerNodeGb === profile.memoryGb
+      && cluster.totalRamGb === cluster.nodeCount * profile.memoryGb
+      && cluster.usableWiredGb === cluster.nodeCount * budget
+    ));
+    assert.ok(scenario.services.find((svc) => svc.id === 'svc-mlx-server')!
+      .memoryAllocation.includes((12 * profile.memoryGb).toLocaleString('en-US') + ' GB'));
+    assert.equal(scenario.proxmoxVms, ARCHITECTURE_CONFIG.proxmoxVms);
+  }
+  assert.equal(originalNode.memoryGb, 256);
+  assert.equal(originalNode.storageSpec.includes('4 TB'), true);
+  assert.equal(originalCluster.totalRamGb, 1024);
+});
+
+test('profile and SSD choices reject invalid browser preferences', () => {
+  assert.equal(getMacHardwareProfile('ultra-96').memoryGb, 96);
+  assert.equal(getMacHardwareProfile('ultra-512').gpuCores, 80);
+  assert.equal(getMacHardwareProfile('unlisted').id, DEFAULT_MAC_PROFILE_ID);
+  assert.equal(getMacHardwareProfile({ id: 'ultra-512' }).id, DEFAULT_MAC_PROFILE_ID);
+  assert.equal(getMacStorageTb('16'), 16);
+  assert.equal(getMacStorageTb(2), 2);
+  assert.equal(getMacStorageTb('4;rm'), 4);
+  assert.equal(getMacStorageTb(0), 4);
+});
+
+test('hardware scenario changes model-fit results for the same model', () => {
+  const fits = (profileId: string) => {
+    const profile = getMacHardwareProfile(profileId);
+    return calculateModelMemoryPlan(405, 'Q4_K_M', 8192, InferenceMode.Independent, 4, illustrativeWiredGb(profile.memoryGb));
+  };
+  assert.equal(fits('ultra-96').fitStatus, 'exceeds');
+  assert.equal(fits('ultra-256').fitStatus, 'exceeds');
+  assert.notEqual(fits('ultra-512').fitStatus, 'exceeds');
+  assert.equal(fits('ultra-512').perNodeUsableCapGb, 448);
 });

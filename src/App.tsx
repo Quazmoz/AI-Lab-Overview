@@ -19,6 +19,14 @@ import {
 } from 'lucide-react';
 import { defaultInfrastructureProvider } from '@/src/services/infrastructureAdapter';
 import {
+  applyMacHardwareScenario,
+  DEFAULT_MAC_PROFILE_ID,
+  DEFAULT_MAC_STORAGE_TB,
+  getMacHardwareProfile,
+  getMacStorageTb,
+  type MacProfileId,
+} from '@/src/data/macHardwareProfiles';
+import {
   InferenceMode,
   NavSection,
   RoadmapItemStatus,
@@ -53,6 +61,8 @@ import { cn } from '@/src/lib/utils';
 
 const ROADMAP_STORAGE_KEY = 'pacf_roadmap_statuses_v1';
 const THEME_STORAGE_KEY = 'pacf_theme_v1';
+const MAC_PROFILE_STORAGE_KEY = 'pacf_mac_profile_v1';
+const MAC_STORAGE_STORAGE_KEY = 'pacf_mac_storage_tb_v1';
 
 const NAV_ITEMS: Array<{
   id: NavSection;
@@ -71,9 +81,24 @@ const NAV_ITEMS: Array<{
 ];
 
 export function App() {
+  const [macProfileId, setMacProfileId] = useState<MacProfileId>(() => {
+    try {
+      return getMacHardwareProfile(window.localStorage.getItem(MAC_PROFILE_STORAGE_KEY)).id;
+    } catch {
+      return DEFAULT_MAC_PROFILE_ID;
+    }
+  });
+  const [macStorageTb, setMacStorageTb] = useState<number>(() => {
+    try {
+      return getMacStorageTb(window.localStorage.getItem(MAC_STORAGE_STORAGE_KEY));
+    } catch {
+      return DEFAULT_MAC_STORAGE_TB;
+    }
+  });
+  const macProfile = getMacHardwareProfile(macProfileId);
   const config = useMemo(
-    () => defaultInfrastructureProvider.getArchitectureConfig(),
-    []
+    () => applyMacHardwareScenario(defaultInfrastructureProvider.getArchitectureConfig(), macProfile, macStorageTb),
+    [macProfileId, macStorageTb]
   );
 
   const [activeNav, setActiveNav] = useState<NavSection>(NavSection.Overview);
@@ -108,6 +133,16 @@ export function App() {
   const exportTriggerRef = useRef<((format: 'png' | 'svg') => Promise<void>) | null>(
     null
   );
+
+  // Mac hardware choices are local planning scenarios, never infrastructure changes.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(MAC_PROFILE_STORAGE_KEY, macProfileId);
+      window.localStorage.setItem(MAC_STORAGE_STORAGE_KEY, String(macStorageTb));
+    } catch {
+      // Browser storage may be blocked.
+    }
+  }, [macProfileId, macStorageTb]);
 
   // Sync dark/light class on <html>
   useEffect(() => {
@@ -281,6 +316,9 @@ export function App() {
               Replicas
             </button>
           </div>
+          <div className="text-[10px] font-mono text-cyan-300 leading-relaxed pt-1">
+            Mac scenario: {macProfile.memoryGb} GB / {macProfile.cpuCores}C / {macProfile.gpuCores}G · {macStorageTb} TB SSD
+          </div>
           <div className="text-[10px] font-mono text-muted-foreground leading-relaxed pt-1">
             Spec {config.metadata.version} · {config.metadata.environment}
           </div>
@@ -430,6 +468,10 @@ export function App() {
                   inferenceMode={inferenceMode}
                   onChangeInferenceMode={setInferenceMode}
                   onSelectService={setSelectedServiceId}
+                  macProfile={macProfile}
+                  onChangeMacProfile={setMacProfileId}
+                  macStorageTb={macStorageTb}
+                  onChangeMacStorageTb={setMacStorageTb}
                 />
               )}
 

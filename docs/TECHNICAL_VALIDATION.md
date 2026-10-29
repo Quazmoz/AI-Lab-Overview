@@ -6,12 +6,12 @@
 
 | Subsystem | What is supported by evidence | What is still unverified |
 | --- | --- | --- |
-| Mac Studio M5 Ultra | Apple lists the configurable 36-core CPU (12 super + 24 performance), 80-core GPU, 32-core Neural Engine, 256 GB unified-memory option and 1.2 TB/s rated memory bandwidth. | Exact purchased SKU, firmware, power, thermals and actual workload throughput |
+| Mac Studio M5 Ultra | Apple lists 30-CPU/64-GPU/96-GB and 36-CPU/80-GPU/256-GB or 512-GB combinations; all Ultra variants list a 32-core Neural Engine and 1.2 TB/s rated bandwidth. The UI offers these as switchable scenarios. | Exact purchased SKU, firmware, power, thermals and actual workload throughput |
 | Fleet arithmetic | 3 × 4 × 256 GB = **3,072 GB installed**. Each four-node group has 1,024 GB total physical memory; 4 × 1.2 TB/s = **4.8 TB/s sum of local rated bandwidth**. | No shared address space or cross-node bandwidth follows from those sums |
-| Wired-memory allowance | Site assumes 224 GB/node (896 GB/cluster) after 32 GB OS headroom. | Actual macOS Metal limits, memory pressure, KV-cache and concurrent allocations |
+| Wired-memory allowance | Default scenario assumes 224 GB/node (896 GB/cluster), while the selector reserves 12.5% of physical RAM for all profiles. | Actual macOS Metal limits, memory pressure, KV-cache and concurrent allocations |
 | Thunderbolt/JACCL | MLX requires macOS 26.2+ with RDMA enabled locally via Recovery. JACCL uses a **full mesh**, not a physical ring: 6 cables per 4-node cluster. | RDMA devices, negotiated link performance, collective latency, reliability |
 | MLX-LM inference | MLX documents distributed inference and JACCL tools. | Compatibility of chosen checkpoints, multi-rank HTTP serving, 64K/128K contexts, tool calls and concurrent workloads |
-| Model-memory calculator | Weight estimate uses total stored parameters; tests cover 671B MoE sizing and four-rank arithmetic. | Actual model formats, tensor distribution, runtime overhead and KV cache |
+| Model-memory calculator | Weight estimate uses total stored parameters; tests cover 671B MoE sizing, four-rank arithmetic, and scenario-specific wired budgets. | Actual model formats, tensor distribution, runtime overhead and KV cache |
 | Proxmox service plane | Static inventory of 6 VMs, allocation totals and reference IDs covered by tests. | Deployed host, backups, failover, security configuration and integrations |
 | Optional Docker/Kubernetes service placements | Service eligibility and fallback are modeled for Linux VM workloads, with regression assertions. Kubernetes is not in the physical topology or six-VM capacity totals. | Cluster provisioning, CNI/RBAC/network policy, durable storage, images, backups, operational sizing and recovery |
 | Network | VLAN and isolated Thunderbolt design documented; addresses redacted. | Switch/port configuration, firewall policy, routing, cable mapping |
@@ -35,7 +35,7 @@
 ### 1. Inventory and safe baseline
 
 - [ ] Record all 12 Mac model identifiers, memory sizes, GPU/CPU SKUs, macOS versions, MLX/MLX-LM/JACCL versions and Python environments.
-- [ ] Confirm every proposed M5 Ultra uses the modeled **36-CPU / 80-GPU / 256-GB** configuration; adjust the source if hardware differs.
+- [ ] Record purchased Mac M5 Ultra SKUs and compare against the three supported UI scenarios; verify the selected profile reflects real CPU/GPU/memory before treating totals as inventory. The default remains **36 CPU / 80 GPU / 256 GB**.
 - [ ] Enable FileVault, restrict SSH to an admin segment, use separate service accounts, verify software provenance and establish update/rollback plans.
 - [ ] Measure idle/prefill/decode wall power, noise and thermal throttling. Rack power/cooling must use **measured** numbers.
 - [ ] Record memory pressure and Metal allocations under long prompts and concurrency. The 224 GB/node allowance is **not a verified system limit**.
@@ -103,10 +103,11 @@ The built-asset verifier checks the mount point, generated JS/CSS, local asset b
 - [ ] Switch between dark/light modes; reload and confirm browser-local preference persists.
 - [ ] Change one roadmap status; reload to confirm browser-local persistence, then reset all demo statuses.
 - [ ] Toggle independent/distributed modes, filters, telemetry links, cluster tabs, and model-sizing presets.
+- [ ] Toggle M5 Ultra 96/256/512 GB scenarios and 1/4/16 TB SSD. Check overview, topology, cluster/fleet totals, detail sheets, bar-chart ceilings, and model-fit verdicts update; reload and reset to validate local persistence and baseline recovery.
 - [ ] Export a PNG and an SVG and open both downloads to check visual completeness and resolution.
 - [ ] Check mobile navigation, keyboard focus, readable contrast, and browser console on Chromium, Safari, and Firefox.
 
-The earlier 29 October live-site smoke covered the original eight-section site and observed successful export **status messages**. It did not test the new optional runtime comparison page, inspect downloaded binary contents, or test non-Chromium/mobile devices. Repeat the expanded checklist after deploying this change.
+The earlier 29 October live-site smoke covered the original eight-section site and observed successful export **status messages**. It did not test the new runtime or Mac SKU selectors, inspect downloaded binary contents, or test non-Chromium/mobile devices. Repeat the expanded checklist after deploying this change.
 
 ## Primary evidence
 

@@ -81,7 +81,7 @@ export const ServiceDetailSheet: React.FC<ServiceDetailSheetProps> = ({
         configSnippet: {
           filename: 'sysctl-metal-tuning.conf',
           language: 'bash',
-          content: `# macOS Metal Memory Tuning for 256 GB Unified Memory\n# Wire up to 224 GB for Metal / MLX GPU buffers\nsudo sysctl iogpu.wired_limit_mb=229376\nsudo sysctl iogpu.wired_lwm_mb=196608\n\n# Configure Thunderbolt 5 Ring Interface\nsudo networksetup -setmanual "Thunderbolt Bridge" <tb5-link-local-ip> <netmask>\nsudo ifconfig bridge0 mtu 9000`,
+          content: `# Read-only Metal memory diagnostics for ${physicalNode.memoryLabel}\n# Do not copy static wired limits across SKUs or macOS releases.\nsysctl iogpu.wired_limit_mb\nmemory_pressure\n# Validate full-mesh Thunderbolt interfaces and MLX/JACCL on hardware.`,
         },
         observabilitySignals: {
           metrics: ['darwin_gpu_utilization_ratio', 'darwin_memory_wired_bytes', 'tb5_ring_rx_tx_bytes', 'darwin_thermal_pressure_level'],
@@ -91,6 +91,8 @@ export const ServiceDetailSheet: React.FC<ServiceDetailSheetProps> = ({
       };
     }
     if (macCluster) {
+      const memberCpuSpec = config.physicalNodes.find((node) => node.id === macCluster.nodeIds[0])?.cpuSpec ?? '36-core';
+      const cpuPerNode = Number.parseInt(memberCpuSpec, 10);
       return {
         id: macCluster.id,
         name: macCluster.name,
@@ -101,7 +103,7 @@ export const ServiceDetailSheet: React.FC<ServiceDetailSheetProps> = ({
         tagline: `${macCluster.roleBadge} · ${macCluster.totalRamGb} GB RAM (${macCluster.usableWiredGb} GB Usable Pool)`,
         description: macCluster.purpose,
         assignedHostOrVm: `${macCluster.nodeCount}× Mac Studio Ultra Nodes (${macCluster.nodeIds.join(', ')})`,
-        cpuAllocation: `${macCluster.nodeCount * 32} Apple Silicon Cores (${macCluster.nodeCount * 24} P-cores + ${macCluster.nodeCount * 8} E-cores)`,
+        cpuAllocation: `${macCluster.nodeCount * cpuPerNode} Apple Silicon CPU cores (per Mac: ${memberCpuSpec})`,
         memoryAllocation: `${macCluster.totalRamGb} GB Unified Memory (${macCluster.usableWiredGb} GB wired Metal pool, ${macCluster.bandwidth})`,
         portsAndProtocols: [
           `10GbE AI Compute: ${macCluster.vlanSubnet} (VLAN 30)`,
@@ -115,8 +117,8 @@ export const ServiceDetailSheet: React.FC<ServiceDetailSheetProps> = ({
           'Only LiteLLM AI Gateway on VLAN 20 is permitted to initiate inference requests into VLAN 30.',
         ],
         architectureNotes: [
-          `Configured with 4-node Thunderbolt 5 RDMA ring with sub-microsecond all-reduce synchronization.`,
-          `Combined unified memory pool of ${macCluster.totalRamGb} GB with ${macCluster.usableWiredGb} GB usable for Metal weight & KV cache allocations.`,
+          `Candidate four-node Thunderbolt 5 RDMA full mesh (six direct links); model-specific collective latency is unverified.`,
+          `Summed physical memory ${macCluster.totalRamGb} GB and heuristic wired allowance ${macCluster.usableWiredGb} GB; each Mac has a separate address space.`,
           `Primary staged models: ${macCluster.primaryModels.join(', ')}.`,
         ],
         configSnippet: {
@@ -132,7 +134,7 @@ export const ServiceDetailSheet: React.FC<ServiceDetailSheetProps> = ({
       };
     }
     return null;
-  }, [directService, physicalNode, macCluster]);
+  }, [directService, physicalNode, macCluster, config.physicalNodes]);
 
   const { inboundConnections, outboundConnections } = getConnectedGraphIds(
     serviceId,

@@ -72,6 +72,9 @@ export function buildArchitectureTopologyGraph(
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const svcMap = new Map(config.services.map((s) => [s.id, s]));
+  const macNodes = config.physicalNodes.filter((node) => node.nodeType === 'mac-studio');
+  const fleetMemoryGb = macNodes.reduce((sum, node) => sum + node.memoryGb, 0);
+  const clusterById = new Map(config.macClusters.map((cluster) => [cluster.id, cluster]));
 
   const isServiceMatched = (id: string) => {
     const svc = svcMap.get(id);
@@ -140,11 +143,11 @@ export function buildArchitectureTopologyGraph(
       style: { width: 1440, height: zCCollapsed ? 74 : 450, zIndex: -10 },
       data: {
         zoneCode: 'Zone C',
-        title: 'Mac Studio AI Compute Fleet (3 Clusters · 12 Nodes · 3,072 GB Unified Memory)',
+        title: 'Mac Studio AI Compute Fleet (' + config.macClusters.length + ' Clusters · ' + macNodes.length + ' Nodes · ' + fleetMemoryGb.toLocaleString() + ' GB Unified Memory)',
         subtitle:
           inferenceMode === InferenceMode.Distributed
-            ? 'Mode 1: Distributed Candidate (4-Node TB5 JACCL Mesh · 896 GB Estimated Budget per Cluster)'
-            : 'Mode 2: Independent Inference (12× 256 GB Replicas · Multi-Cluster Gateway Balancing)',
+            ? 'Mode 1: Distributed Candidate (4-Node TB5 JACCL Mesh · ' + (config.macClusters[0]?.usableWiredGb ?? 896) + ' GB Estimated Budget per Cluster)'
+            : 'Mode 2: Independent Inference (' + macNodes.length + '× ' + (macNodes[0]?.memoryGb ?? 256) + ' GB Replicas · Multi-Cluster Gateway Balancing)',
         accent: 'violet',
         collapsed: zCCollapsed,
         onToggle: () => callbacks.onToggleZone(ArchitectureZoneId.ZoneC),
@@ -217,7 +220,7 @@ export function buildArchitectureTopologyGraph(
     });
   }
 
-  // Zone C: MLX Server + 3 Mac Studio Clusters (4 Nodes Each, 256 GB Each)
+  // Zone C: MLX Server + three four-node Mac Studio clusters
   if (!zCCollapsed) {
     const mlxSvc = svcMap.get('svc-mlx-server')!;
 
@@ -237,7 +240,7 @@ export function buildArchitectureTopologyGraph(
       },
     });
 
-    // Cluster 1: Reasoning & MoE (4 Nodes, 256 GB each = 1,024 GB)
+    // Cluster 1: Reasoning & MoE (selected Mac hardware scenario)
     nodes.push({
       id: 'cluster-c1',
       type: 'macClusterGroup',
@@ -249,9 +252,9 @@ export function buildArchitectureTopologyGraph(
         clusterNumber: 1,
         title: 'Reasoning & MoE Cluster',
         purpose: 'DeepSeek-V3 MoE / Llama-405B Frontier Models',
-        totalRamGb: 1024,
-        usablePoolGb: 896,
-        bandwidth: '4.8 TB/s summed local',
+        totalRamGb: clusterById.get('mac-cluster-01')?.totalRamGb ?? 1024,
+        usablePoolGb: clusterById.get('mac-cluster-01')?.usableWiredGb ?? 896,
+        bandwidth: clusterById.get('mac-cluster-01')?.bandwidth ?? '4.8 TB/s summed local',
         roleBadge: '4-Way TP Sharded (TB5 RDMA)',
         inferenceMode,
         nodes: [
@@ -295,7 +298,7 @@ export function buildArchitectureTopologyGraph(
       },
     });
 
-    // Cluster 2: High-Throughput Replicas (4 Nodes, 256 GB each = 1,024 GB)
+    // Cluster 2: High-Throughput Replicas (selected Mac hardware scenario)
     nodes.push({
       id: 'cluster-c2',
       type: 'macClusterGroup',
@@ -307,9 +310,9 @@ export function buildArchitectureTopologyGraph(
         clusterNumber: 2,
         title: 'High-Throughput & Swarms',
         purpose: 'Llama-3.3-70B / Qwen-32B Planned Replicas',
-        totalRamGb: 1024,
-        usablePoolGb: 896,
-        bandwidth: '4.8 TB/s summed local',
+        totalRamGb: clusterById.get('mac-cluster-02')?.totalRamGb ?? 1024,
+        usablePoolGb: clusterById.get('mac-cluster-02')?.usableWiredGb ?? 896,
+        bandwidth: clusterById.get('mac-cluster-02')?.bandwidth ?? '4.8 TB/s summed local',
         roleBadge: '4× Active-Active Replicas',
         inferenceMode,
         nodes: [
@@ -353,7 +356,7 @@ export function buildArchitectureTopologyGraph(
       },
     });
 
-    // Cluster 3: Multimodal, RAG & Fine-Tuning (4 Nodes, 256 GB each = 1,024 GB)
+    // Cluster 3: Multimodal, RAG & Fine-Tuning (selected Mac hardware scenario)
     nodes.push({
       id: 'cluster-c3',
       type: 'macClusterGroup',
@@ -365,9 +368,9 @@ export function buildArchitectureTopologyGraph(
         clusterNumber: 3,
         title: 'Multimodal, RAG & LoRA',
         purpose: 'BGE-M3 / Qwen-VL / ColPali & Fine-Tuning',
-        totalRamGb: 1024,
-        usablePoolGb: 896,
-        bandwidth: '4.8 TB/s summed local',
+        totalRamGb: clusterById.get('mac-cluster-03')?.totalRamGb ?? 1024,
+        usablePoolGb: clusterById.get('mac-cluster-03')?.usableWiredGb ?? 896,
+        bandwidth: clusterById.get('mac-cluster-03')?.bandwidth ?? '4.8 TB/s summed local',
         roleBadge: 'Specialized Vector & Vision',
         inferenceMode,
         nodes: [

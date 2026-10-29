@@ -12,7 +12,7 @@ An interactive, browser-only reference architecture for a **proposed on-premises
 
 - **Overview:** infrastructure zones and a navigable service topology.
 - **Architecture Topology:** interactive dependency graph, inference-mode switch, filtering, service detail sheets, PNG/SVG export.
-- **Mac Studio Cluster:** three four-node clusters, individual node specifications, model-memory sizing heuristic, and independent-vs-distributed comparison.
+- **Mac Studio Cluster:** selectable Apple M5 Ultra hardware profiles, SSD sizes, three four-node clusters, dynamically updated model-memory sizing and independent-vs-distributed comparisons.
 - **Proxmox Infrastructure:** planned host baseline and six VM allocations.
 - **Docker & Kubernetes Options:** interactive comparison of VM, Docker Compose and Kubernetes placements for eligible supporting workloads, with state and security constraints.
 - **Services & Dependencies:** LiteLLM, MLX-LM, n8n, PostgreSQL, Redis, Qdrant, MCP servers, and operational components.
@@ -20,7 +20,7 @@ An interactive, browser-only reference architecture for a **proposed on-premises
 - **Network Architecture:** segmented Ethernet VLANs and proposed Thunderbolt 5 JACCL meshes.
 - **Deployment Roadmap:** five phases with local, browser-specific status overrides.
 
-The application supports dark/light themes, keyboard search via **Cmd/Ctrl+K**, and clickable infrastructure service cards. Roadmap state and theme preference are stored in `localStorage`, not synchronized to GitHub or a backend.
+The application supports dark/light themes, keyboard search via **Cmd/Ctrl+K**, and clickable infrastructure service cards. Roadmap state, theme and Mac hardware scenario preferences are stored in `localStorage`, not synchronized to GitHub or a backend.
 
 The published bundle is a **static client-side React application**. The dependency manifest intentionally excludes server-only Express and environment loaders, the Gemini SDK, and unused runtime packages; adding a live API requires a separate authenticated backend and threat model.
 
@@ -50,11 +50,25 @@ The six-VM CPU and RAM calculations **exclude Kubernetes guest nodes**. A single
 
 The [interactive runtime comparison](https://quazmoz.github.io/AI-Lab-Overview/) and [workload deployment catalog](src/data/workloadDeployment.ts) provide the per-service details. They are reference designs, not ready-to-apply production manifests.
 
+### Toggleable Mac Studio hardware scenarios
+
+On **Mac Studio Cluster → Mac Studio Hardware Scenario**, choose one of the Apple-listed M5 Ultra combinations:
+
+| Profile | CPU / GPU cores | Unified memory per Mac | Illustrative wired budget per Mac |
+| --- | --- | --- | --- |
+| Base M5 Ultra | 30 / 64 | 96 GB | 84 GB |
+| Upgraded M5 Ultra (default) | 36 / 80 | 256 GB | 224 GB |
+| Maximum-memory M5 Ultra | 36 / 80 | 512 GB | 448 GB |
+
+You can also choose **1, 2, 4, 8, or 16 TB SSD** per Mac (default: 4 TB). The selector applies uniformly to all 12 Macs, updating the **Overview**, **Topology**, **Mac Cluster**, **Services**, and **node detail** figures without changing Proxmox resources or the logical connection graph. The model-fit calculator and reference category table use the selected heuristic per-node budget. Invalid saved values are rejected, and a reset button returns to the original 256 GB / 4 TB proposal.
+
+The illustrative wired budget is **87.5% of physical RAM**, reserving 12.5% for macOS and runtime overhead. This is **not** a measured Metal limit or a guarantee of model compatibility. Neither SSD size nor CPU/GPU core count is currently used to predict throughput. Synthetic observability charts and the implementation roadmap remain baseline demonstrations; they are not live readings or procurement records.
+
 ### Validated hardware baseline versus assumptions
 
-The site models the **configurable 36-core CPU / 80-core GPU / 32-core Neural Engine M5 Ultra** with 256 GB unified memory, rated at 1.2 TB/s *per Mac* by Apple. Thus 12 nodes sum to 3,072 GB of physical memory; the displayed 4.8 TB/s per-cluster figure is only the **sum of four independent local memory-bandwidth ratings**, not inter-node RDMA throughput.
+The default profile models the **36-core CPU / 80-core GPU / 32-core Neural Engine M5 Ultra** with 256 GB unified memory, rated at 1.2 TB/s *per Mac* by Apple. Thus 12 default nodes sum to 3,072 GB physical memory; 4.8 TB/s per cluster is only the **sum of four independent local memory-bandwidth ratings**, not inter-node RDMA throughput. Other profiles are selectable what-if configurations.
 
-The 224 GB usable wired-memory allowance per node (896 GB per four-node cluster), model weights, KV cache, and runtime overhead are **planning heuristics**. They do not establish actual allocation, shared addressability, model support, maximum context length, performance, or failover. A mixture-of-experts model's **total stored parameters**, not merely the active-per-token count, determines weight storage.
+The default 224 GB usable wired-memory allowance per node (896 GB per four-node cluster), scenario-specific 12.5% reserve, model weights, KV cache, and runtime overhead are **planning heuristics**. They do not establish actual allocation, shared addressability, model support, maximum context length, performance, or failover. A mixture-of-experts model's **total stored parameters**, not merely the active-per-token count, determines weight storage.
 
 MLX's JACCL backend requires a **fully connected Thunderbolt 5 mesh**, macOS 26.2 or newer, local RDMA enablement in macOS Recovery, and a generated hostfile. An ordinary four-node Thunderbolt ring is a different, TCP-based MLX backend; it cannot be assumed interchangeable with JACCL.
 
@@ -98,6 +112,7 @@ For an end-to-end browser check, visit the [live Pages URL](https://quazmoz.gith
 | --- | --- |
 | `src/data/architectureData.ts` | Proposed hardware, VMs, services, connections, VLANs, models, roadmap |
 | `src/data/workloadDeployment.ts` | Eligible Linux runtime options and per-service deployment guardrails |
+| `src/data/macHardwareProfiles.ts` | Apple-listed Mac SKU/SSD choices and immutable hardware-scenario derivation |
 | `src/data/demoTelemetry.ts` | Synthetic KPIs, logs, traces, availability (never live data) |
 | `src/services/infrastructureAdapter.ts` | Read-only `PlanningArchitectureProvider` contract, extension seam for future live integrations |
 | `src/utils/architectureLogic.ts` | Memory planning, filtering, roadmap and VM calculations |

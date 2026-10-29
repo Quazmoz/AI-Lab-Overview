@@ -48,12 +48,16 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   exportTriggerRef,
 }) => {
   const vmTotals = calculateProxmoxTotals(config.proxmoxVms);
+  const macNodes = config.physicalNodes.filter((node) => node.nodeType === 'mac-studio');
+  const macMemoryGb = macNodes[0]?.memoryGb ?? 256;
+  const macMemoryTotalGb = macNodes.reduce((total, node) => total + node.memoryGb, 0);
+  const macClusterCount = config.macClusters.length;
 
   const summaryCards = [
     {
       title: 'Mac Studio Ultra Fleet',
-      value: '12 Nodes (3 Clusters)',
-      detail: '3 Clusters × 4 Nodes · 3,072 GB Combined Unified Memory',
+      value: macNodes.length + ' Nodes (' + macClusterCount + ' Clusters)',
+      detail: macClusterCount + ' Clusters × 4 Nodes · ' + macMemoryTotalGb.toLocaleString() + ' GB Combined Unified Memory',
       status: 'Planned · Bare-Metal Compute',
       icon: Server,
       targetNav: NavSection.MacCluster,
@@ -209,11 +213,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </CardHeader>
           <CardContent className="space-y-2.5 text-xs text-muted-foreground leading-relaxed">
             <p>
-              Three proposed clusters of four <strong className="text-foreground">Mac Studio M5 Ultra</strong> nodes (12 nodes total) provide{' '}
-              <span className="font-mono text-foreground">12 × 256 GB = 3,072 GB</span> aggregate unified memory running bare-metal macOS with <strong className="text-foreground">MLX / MLX-LM</strong>.
+              Three proposed clusters of four <strong className="text-foreground">Mac Studio M5 Ultra</strong> nodes ({macNodes.length} nodes total) provide{' '}
+              <span className="font-mono text-foreground">{macNodes.length} × {macMemoryGb} GB = {macMemoryTotalGb.toLocaleString()} GB</span> aggregate unified memory running bare-metal macOS with <strong className="text-foreground">MLX / MLX-LM</strong>.
             </p>
             <p>
-              Dedicated intra-cluster <strong className="text-sky-300">Thunderbolt 5 RDMA 4-node full meshes</strong> are proposed for JACCL. Four-rank model support and performance remain hardware acceptance tests; each mesh requires six peer cables.
+              Dedicated intra-cluster <strong className="text-sky-300">Thunderbolt 5 RDMA 4-node full meshes</strong> are proposed for JACCL. Four-rank model support and performance remain hardware acceptance tests; each mesh requires six peer cables. Hardware specs can be switched in the Mac Studio Cluster view as local planning scenarios.
             </p>
           </CardContent>
         </Card>

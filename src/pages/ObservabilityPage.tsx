@@ -267,7 +267,7 @@ export const ObservabilityPage: React.FC<ObservabilityPageProps> = ({
                 <span className="font-mono text-[10px] text-muted-foreground">Simulated</span>
               </div>
               <CardDescription>
-                Wired Metal/MLX memory (GB) across Cluster 1 (Reasoning / MoE), Cluster 2 (Throughput), and Cluster 3 (Multimodal / RAG) (1,024 GB RAM per cluster).
+                Synthetic wired Metal/MLX memory (GB) for three clusters using the original 256 GB/Mac baseline (1,024 GB per cluster). This demonstration does not rescale when the hardware planning selector changes.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-2">

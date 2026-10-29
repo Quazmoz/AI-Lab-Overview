@@ -43,7 +43,8 @@ export function calculateModelMemoryPlan(
   quantization: QuantizationPrecision,
   contextTokens: number,
   mode: InferenceMode,
-  nodeCount: number = 4
+  nodeCount: number = 4,
+  perNodeUsableBudgetGb: number = MACOS_USABLE_WIRED_GB
 ): ModelMemoryPlanResult {
   const safeParams = Math.max(1, paramsBillion);
   const safeContext = Math.max(1024, contextTokens);
@@ -60,9 +61,10 @@ export function calculateModelMemoryPlan(
 
   const totalRequiredGb = Number((weightsGb + kvCacheGb + runtimeOverheadGb).toFixed(1));
 
-  const perNodeUsableCapGb = MACOS_USABLE_WIRED_GB;
+  const perNodeUsableCapGb =
+    Number.isFinite(perNodeUsableBudgetGb) ? Math.max(1, perNodeUsableBudgetGb) : MACOS_USABLE_WIRED_GB;
   const usablePoolGb =
-    mode === InferenceMode.Distributed ? MACOS_USABLE_WIRED_GB * count : MACOS_USABLE_WIRED_GB;
+    mode === InferenceMode.Distributed ? perNodeUsableCapGb * count : perNodeUsableCapGb;
 
   const perNodeAllocatedGb =
     mode === InferenceMode.Distributed
