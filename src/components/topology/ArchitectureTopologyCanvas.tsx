@@ -318,14 +318,14 @@ function TopologyInner({
             <>
               <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
               <span className="text-muted-foreground">
-                <strong className="text-foreground">Distributed Sharding Mode:</strong> Proposed four-rank MLX/JACCL execution on <code className="font-mono text-foreground">Cluster 1</code>. The <span className="text-cyan-400 font-medium">896 GB total</span> is a sum of assumed per-node wired budgets, not a shared-memory pool. Checkpoint compatibility, tensor partitioning, KV cache and four-rank serving need physical validation.
+                <strong className="text-foreground">Distributed Sharding Mode:</strong> Proposed four-rank MLX/JACCL execution on <code className="font-mono text-foreground">Cluster 1</code>. The <span className="text-cyan-400 font-medium">{config.macClusters.find((cluster) => cluster.id === 'mac-cluster-01')?.usableWiredGb.toLocaleString() ?? '—'} GB total</span> is a sum of scenario-specific per-node wired allowances, not a shared-memory pool. Checkpoint compatibility, tensor partitioning, KV cache and four-rank serving need physical validation.
               </span>
             </>
           ) : (
             <>
               <Info className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
               <span className="text-muted-foreground">
-                <strong className="text-foreground">Independent Replicas Mode:</strong> Each Mac could run a standalone model within its own memory limit (e.g. four candidate 70B replicas in Cluster 2). LiteLLM health checks, routing and failure recovery must be configured and tested before claiming HA.
+                <strong className="text-foreground">Independent Replicas Mode:</strong> Each Mac has its own selected memory budget; replica model size, quantization, context and concurrency require validation. LiteLLM health checks, routing and failure recovery must be configured and tested before claiming HA.
               </span>
             </>
           )}
