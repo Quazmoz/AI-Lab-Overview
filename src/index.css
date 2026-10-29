@@ -1,0 +1,158 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #0891b2;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #1e293b;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #e2e8f0;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #06b6d4;
+  --radius: 0.5rem;
+  --canvas-bg: #f1f5f9;
+  --canvas-dots: #cbd5e1;
+}
+
+.dark {
+  --background: #090d16;
+  --foreground: #f1f5f9;
+  --card: #0f1624;
+  --card-foreground: #f1f5f9;
+  --popover: #0f1624;
+  --popover-foreground: #f1f5f9;
+  --primary: #22d3ee;
+  --primary-foreground: #082f49;
+  --secondary: #162033;
+  --secondary-foreground: #e2e8f0;
+  --muted: #131c2e;
+  --muted-foreground: #94a3b8;
+  --accent: #1a263d;
+  --accent-foreground: #f8fafc;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: #22d3ee;
+  --canvas-bg: #070b12;
+  --canvas-dots: #1e293b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--background);
+    color: var(--foreground);
+    letter-spacing: 0.005em;
+  }
+  code, pre, .font-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* React Flow dark/light polish */
+.react-flow__attribution {
+  background: transparent !important;
+  opacity: 0.25;
+  font-size: 9px !important;
+}
+
+.react-flow__controls {
+  box-shadow: none !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.5rem !important;
+  overflow: hidden !important;
+  background: var(--card) !important;
+}
+
+.react-flow__controls-button {
+  background: var(--card) !important;
+  border-bottom: 1px solid var(--border) !important;
+  fill: var(--foreground) !important;
+  color: var(--foreground) !important;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--accent) !important;
+}
+
+.react-flow__minimap {
+  background-color: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0.5rem !important;
+}
+
+@keyframes rdma-pulse {
+  0%, 100% {
+    stroke-opacity: 0.85;
+  }
+  50% {
+    stroke-opacity: 1;
+  }
+}
+
+.edge-rdma path {
+  animation: rdma-pulse 2.4s ease-in-out infinite;
+}
+
+@media print {
+  aside,
+  header button,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+}
