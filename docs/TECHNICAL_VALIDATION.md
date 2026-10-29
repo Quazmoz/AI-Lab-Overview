@@ -20,7 +20,7 @@
 
 ### Changes incorporated in this audit
 
-- Corrected "M4 Ultra" and mixed-generation hardware values to match the **M5 Ultra option** in the plan; moved unknown power usage to **TBD**.
+- Standardized mixed-generation hardware references on the **Mac Studio M5 Ultra** configurations in the plan; moved unknown power usage to **TBD**.
 - Replaced incorrect four-node physical RDMA rings with **JACCL-compatible full meshes**. Budget **18 Thunderbolt 5 cables across three clusters** and three direct peer links per node.
 - Clarified that 896 GB is an assumed *summed wired-memory budget*, not a single remotely addressable memory pool. Likewise, 4.8 TB/s is summed **local** memory bandwidth.
 - Removed hardcoded model layer partitioning and claims of measured token throughput or collective latency; four-rank tensor support varies by model and software version.
