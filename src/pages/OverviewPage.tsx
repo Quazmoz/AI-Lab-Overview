@@ -22,7 +22,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
 import { Progress } from '@/src/components/ui/progress';
-import { ArchitectureTopologyCanvas } from '@/src/components/topology/ArchitectureTopologyCanvas';
+const ArchitectureTopologyCanvas = React.lazy(() =>
+  import('@/src/components/topology/ArchitectureTopologyCanvas').then((m) => ({ default: m.ArchitectureTopologyCanvas }))
+);
 
 interface OverviewPageProps {
   config: ArchitectureConfig;
@@ -118,7 +120,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             Hybrid Bare-Metal Apple Silicon Compute + Proxmox Virtualized Control Plane
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Separates memory-bandwidth-intensive LLM inference onto 12 Mac Studio M4 Ultra nodes across three 4-node clusters (3,072 GB Unified Memory) interconnected via Thunderbolt 5 RDMA rings, while isolating stateful databases, vector search, automation queues, MCP tooling, and OpenTelemetry observability inside six Proxmox VE virtual machines.
+            Proposes separating LLM inference onto 12 Mac Studio M5 Ultra nodes across three 4-node clusters (3,072 GB total unified memory), with a JACCL-compatible Thunderbolt 5 mesh per cluster. Stateful databases, vector search, automation queues, MCP tooling, and OpenTelemetry observability run on six planned Proxmox VMs.
           </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
@@ -179,16 +181,18 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </div>
         </div>
 
-        <ArchitectureTopologyCanvas
-          config={config}
-          inferenceMode={inferenceMode}
-          onChangeInferenceMode={onChangeInferenceMode}
-          selectedServiceId={selectedServiceId}
-          onSelectService={onSelectService}
-          compactHeight={true}
-          onOpenFullScreen={() => onNavigate(NavSection.Topology)}
-          exportTriggerRef={exportTriggerRef}
-        />
+        <React.Suspense fallback={<div role="status" className="h-64 rounded-lg border border-border p-6 text-sm text-muted-foreground">Loading interactive topology…</div>}>
+          <ArchitectureTopologyCanvas
+            config={config}
+            inferenceMode={inferenceMode}
+            onChangeInferenceMode={onChangeInferenceMode}
+            selectedServiceId={selectedServiceId}
+            onSelectService={onSelectService}
+            compactHeight={true}
+            onOpenFullScreen={() => onNavigate(NavSection.Topology)}
+            exportTriggerRef={exportTriggerRef}
+          />
+        </React.Suspense>
       </section>
 
       {/* Architectural Separation & Core Design Decisions */}
@@ -202,11 +206,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </CardHeader>
           <CardContent className="space-y-2.5 text-xs text-muted-foreground leading-relaxed">
             <p>
-              Three proposed clusters of four <strong className="text-foreground">Mac Studio M4 Ultra</strong> nodes (12 nodes total) provide{' '}
+              Three proposed clusters of four <strong className="text-foreground">Mac Studio M5 Ultra</strong> nodes (12 nodes total) provide{' '}
               <span className="font-mono text-foreground">12 × 256 GB = 3,072 GB</span> aggregate unified memory running bare-metal macOS with <strong className="text-foreground">MLX / MLX-LM</strong>.
             </p>
             <p>
-              Dedicated intra-cluster <strong className="text-sky-300">Thunderbolt 5 RDMA 4-node rings</strong> enable low-latency 4-way tensor and pipeline parallelism (TP=4 / PP=4) without traversing Ethernet switches.
+              Dedicated intra-cluster <strong className="text-sky-300">Thunderbolt 5 RDMA 4-node full meshes</strong> are proposed for JACCL. Four-rank model support and performance remain hardware acceptance tests; each mesh requires six peer cables.
             </p>
           </CardContent>
         </Card>

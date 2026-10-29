@@ -25,10 +25,9 @@ export interface ModelMemoryPlanResult {
   perNodeUsableCapGb: number;
   utilizationPercent: number;
   fitStatus: 'comfortable' | 'tight' | 'exceeds';
-  nodeLayersPct: number;
-  mac01LayersPct: number;
-  mac02LayersPct: number;
-  failoverAvailable: boolean;
+  estimatedPerNodeSharePercent: number;
+  /** Memory-only eligibility for redundant replicas; not a proven HA configuration. */
+  replicaFailoverCandidate: boolean;
 }
 
 const BYTES_PER_PARAM: Record<QuantizationPrecision, number> = {
@@ -37,7 +36,7 @@ const BYTES_PER_PARAM: Record<QuantizationPrecision, number> = {
   Q4_K_M: 0.58,
 };
 
-const MACOS_USABLE_WIRED_GB = 224; // Out of 256 GB Unified Memory after ~32 GB OS & Metal headroom
+const MACOS_USABLE_WIRED_GB = 224; // Illustrative budget, not a guaranteed macOS/Metal wired limit.
 
 export function calculateModelMemoryPlan(
   paramsBillion: number,
@@ -51,10 +50,11 @@ export function calculateModelMemoryPlan(
   const count = Math.max(1, nodeCount);
 
   const weightsGb = Number((safeParams * BYTES_PER_PARAM[quantization]).toFixed(1));
-  // KV cache scales with model depth/width heuristic + context window
+  // Approximate KV cache: actual size depends on layers, GQA heads, KV dtype,
+  // concurrency, and the model architecture. This is not a capacity guarantee.
   const kvScaleFactor = Math.sqrt(safeParams / 70);
   const kvCacheGb = Number(((safeContext / 8192) * 2.6 * kvScaleFactor).toFixed(1));
-  // MLX Metal activation + distributed ring buffers overhead
+  // Illustrative MLX activation and distributed collective buffers overhead.
   const baseOverhead = mode === InferenceMode.Distributed ? (count > 2 ? 10.5 : 8.5) : 5.0;
   const runtimeOverheadGb = Number((baseOverhead + weightsGb * 0.04).toFixed(1));
 
@@ -80,7 +80,8 @@ export function calculateModelMemoryPlan(
     fitStatus = 'tight';
   }
 
-  const nodeLayersPct = mode === InferenceMode.Distributed ? Math.round(100 / count) : 100;
+  const estimatedPerNodeSharePercent =
+    mode === InferenceMode.Distributed ? Math.round(100 / count) : 100;
 
   return {
     paramsBillion: safeParams,
@@ -97,10 +98,8 @@ export function calculateModelMemoryPlan(
     perNodeUsableCapGb,
     utilizationPercent,
     fitStatus,
-    nodeLayersPct,
-    mac01LayersPct: nodeLayersPct,
-    mac02LayersPct: nodeLayersPct,
-    failoverAvailable: mode === InferenceMode.Independent && fitStatus !== 'exceeds',
+    estimatedPerNodeSharePercent,
+    replicaFailoverCandidate: mode === InferenceMode.Independent && count >= 2 && fitStatus !== 'exceeds',
   };
 }
 

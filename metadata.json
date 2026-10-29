@@ -1,6 +1,6 @@
 {
   "name": "Private AI Compute Fabric",
-  "description": "Interactive enterprise AI infrastructure architecture explorer and planning console visualizing a hybrid Apple Mac Studio M5 Ultra RDMA cluster and Proxmox VE service platform.",
+  "description": "Planning-only static architecture explorer for a proposed M5 Ultra and Proxmox AI lab. All telemetry is simulated; no connected AI backend.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

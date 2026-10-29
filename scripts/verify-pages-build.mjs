@@ -8,11 +8,13 @@ assert.match(base, /^\/(?:[\w.-]+\/)*$/, 'VITE_BASE_PATH must begin and end with
 const html = readFileSync('dist/index.html', 'utf8');
 assert.match(html, /id="root"/, 'Missing React mount point');
 assert.doesNotMatch(html, /\/src\/main\.tsx/, 'Development entrypoint remains in build');
+assert.doesNotMatch(html, /%BASE_URL%/, 'Vite did not replace the favicon base path');
 
 const urls = [...html.matchAll(/(?:src|href)="([^"]+)"/g)].map((match) => match[1]);
 const localUrls = urls.filter((url) => url.startsWith('/') && !url.startsWith('//'));
 assert.ok(localUrls.some((url) => /\/assets\/[^/]+\.js$/.test(url)), 'No bundled JS asset');
 assert.ok(localUrls.some((url) => /\/assets\/[^/]+\.css$/.test(url)), 'No bundled CSS asset');
+assert.ok(localUrls.includes(`${base}favicon.svg`), 'Missing base-aware favicon URL');
 
 for (const url of localUrls) {
   assert.ok(url.startsWith(base), `Asset uses wrong base path: ${url}`);
