@@ -77,7 +77,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     {
       title: 'AI Inference Modes',
       value: '2 Modes',
-      detail: 'TB5 RDMA Sharded vs Independent HA',
+      detail: 'TB5 RDMA Sharding vs Independent Replicas',
       status: 'Conceptual · Switchable',
       icon: Layers,
       targetNav: NavSection.MacCluster,
@@ -227,7 +227,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               Six KVM virtual machines on <code className="font-mono text-foreground">pve-ai-host-01</code> segregate ingress (<strong className="text-foreground">LiteLLM</strong>), orchestration (<strong className="text-foreground">n8n</strong>), relational/queue state (<strong className="text-foreground">PostgreSQL + Redis</strong>), RAG (<strong className="text-foreground">Qdrant</strong>), tool connectors (<strong className="text-foreground">MCP</strong>), and monitoring.
             </p>
             <p>
-              Keeping Docker/Linux stateful workloads on Proxmox preserves 100% of Mac Studio memory for model weights and KV caches.
+              Keeping Linux stateful workloads on Proxmox avoids competing with Mac Studio inference workloads for memory, while macOS and MLX still require their own headroom.
             </p>
           </CardContent>
         </Card>

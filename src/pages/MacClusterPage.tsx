@@ -38,9 +38,11 @@ interface MacClusterPageProps {
 }
 
 const MODEL_PRESETS: Array<{ label: string; paramsB: number; category: string }> = [
-  { label: 'Qwen3-30B-A3B / Coder-32B (30B)', paramsB: 30, category: '8B–30B' },
+  { label: 'Qwen3-30B-A3B (30B total)', paramsB: 30, category: '8B–32B' },
+  { label: 'Qwen2.5-Coder-32B (32B)', paramsB: 32, category: '8B–32B' },
   { label: 'Llama-3.3-70B-Instruct (70B)', paramsB: 70, category: '70B' },
-  { label: 'Mistral-Large / Command-A (150B)', paramsB: 150, category: '100B–200B' },
+  { label: 'Representative 150B model (illustrative)', paramsB: 150, category: '100B–200B' },
+  { label: 'Qwen3-235B-A22B (235B total)', paramsB: 235, category: '200B–399B' },
   { label: 'Llama-3.1-405B (405B total)', paramsB: 405, category: '400B+' },
   { label: 'DeepSeek-V3 MoE (671B total)', paramsB: 671, category: '400B+' },
 ];
@@ -139,6 +141,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
           <button
             type="button"
             onClick={() => onChangeInferenceMode(InferenceMode.Distributed)}
+            aria-pressed={inferenceMode === InferenceMode.Distributed}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap',
               inferenceMode === InferenceMode.Distributed
@@ -152,6 +155,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
           <button
             type="button"
             onClick={() => onChangeInferenceMode(InferenceMode.Independent)}
+            aria-pressed={inferenceMode === InferenceMode.Independent}
             className={cn(
               'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap',
               inferenceMode === InferenceMode.Independent
@@ -174,6 +178,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
               key={cluster.id}
               type="button"
               onClick={() => setSelectedClusterId(cluster.id)}
+              aria-pressed={active}
               className={cn(
                 'inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer',
                 active
@@ -192,6 +197,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
         <button
           type="button"
           onClick={() => setSelectedClusterId('fleet')}
+          aria-pressed={isFleetOverview}
           className={cn(
             'inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer',
             isFleetOverview
@@ -300,7 +306,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                   <span className="text-right text-foreground truncate">Apple M5 Ultra (36-core)</span>
                 </div>
                 <div className="flex justify-between gap-1">
-                  <span className="text-muted-foreground">GPU (Metal 3)</span>
+                  <span className="text-muted-foreground">GPU (Metal)</span>
                   <span className="text-right text-foreground">80-core GPU</span>
                 </div>
                 <div className="flex justify-between gap-1">
@@ -451,7 +457,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
           <CardHeader>
             <CardTitle>4-Node Cluster Memory Sizing & Sharding Calculator</CardTitle>
             <CardDescription>
-              Model memory footprints partitioned across a 4-node Mac Studio cluster (1,024 GB total Unified Memory, 896 GB usable wired Metal pool).
+              Illustrative per-rank memory estimates across four Mac Studios (1,024 GB installed). The 896 GB figure sums four assumed 224 GB wired budgets; memory is not shared between Macs.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -585,8 +591,8 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                   <span>
                     <strong>Exceeds Usable Memory ({memoryPlan.totalRequiredGb} GB required):</strong>{' '}
                     {inferenceMode === InferenceMode.Independent
-                      ? 'Switch to Distributed Mode to shard across all 4 Mac Studios (896 GB usable pool per cluster) or select Q4_K_M quantization.'
-                      : 'Exceeds the 896 GB usable wired pool of the 4-node cluster. Reduce context window or select lower quantization.'}
+                      ? 'A supported four-rank model might fit across 4 Macs with separate 224 GB assumed wired budgets. Select lower quantization or validate actual sharding and memory use.'
+                      : 'Estimated per-node allocation exceeds the illustrative 224 GB wired budget. Reduce context or quantization and verify on hardware.'}
                   </span>
                 ) : (
                   <span>
@@ -696,7 +702,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
             <div>
               <CardTitle>Planned Model Size Categories & Serving Matrix</CardTitle>
               <CardDescription>
-                Reference sizing across 8B–30B, 70B, 100B–200B, and 400B+ parameter tiers on 3 clusters with 4 nodes each (256 GB RAM each).
+                Reference sizing across 8B–32B, 70B, 100B–200B, 200B–399B, and 400B+ parameter tiers on 3 clusters with 4 nodes each (256 GB RAM each).
               </CardDescription>
             </div>
             <Cpu className="h-4 w-4 text-violet-400" />

@@ -218,6 +218,7 @@ function TopologyInner({
             <button
               type="button"
               onClick={() => onChangeInferenceMode(InferenceMode.Distributed)}
+              aria-pressed={inferenceMode === InferenceMode.Distributed}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0',
                 inferenceMode === InferenceMode.Distributed
@@ -231,6 +232,7 @@ function TopologyInner({
             <button
               type="button"
               onClick={() => onChangeInferenceMode(InferenceMode.Independent)}
+              aria-pressed={inferenceMode === InferenceMode.Independent}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0',
                 inferenceMode === InferenceMode.Independent
@@ -316,14 +318,14 @@ function TopologyInner({
             <>
               <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
               <span className="text-muted-foreground">
-                <strong className="text-foreground">Distributed Sharding Mode:</strong> 4-way Tensor & Pipeline Parallelism across 4 nodes in <code className="font-mono text-foreground">Cluster 1</code> via TB5 RDMA unlocks an <span className="text-cyan-400 font-medium">896 GB usable pool</span> for 405B / 671B MoE frontier models; all 4 nodes must remain online for the distributed shard.
+                <strong className="text-foreground">Distributed Sharding Mode:</strong> Proposed four-rank MLX/JACCL execution on <code className="font-mono text-foreground">Cluster 1</code>. The <span className="text-cyan-400 font-medium">896 GB total</span> is a sum of assumed per-node wired budgets, not a shared-memory pool. Checkpoint compatibility, tensor partitioning, KV cache and four-rank serving need physical validation.
               </span>
             </>
           ) : (
             <>
               <Info className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
               <span className="text-muted-foreground">
-                <strong className="text-foreground">Independent Replicas Mode:</strong> Nodes host standalone models within 256 GB memory (e.g. 4× 70B in Cluster 2); LiteLLM provides dynamic health checks and automated multi-replica failover.
+                <strong className="text-foreground">Independent Replicas Mode:</strong> Each Mac could run a standalone model within its own memory limit (e.g. four candidate 70B replicas in Cluster 2). LiteLLM health checks, routing and failure recovery must be configured and tested before claiming HA.
               </span>
             </>
           )}

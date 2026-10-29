@@ -15,7 +15,7 @@
 | Proxmox service plane | Static inventory of 6 VMs, allocation totals and reference IDs covered by tests. | Deployed host, backups, failover, security configuration and integrations |
 | Network | VLAN and isolated Thunderbolt design documented; addresses redacted. | Switch/port configuration, firewall policy, routing, cable mapping |
 | Observability | Synthetic OTel/Prometheus/Loki/Tempo/Grafana examples present. | Live scraping, logs, trace propagation, retention and alert routing |
-| Web deployment | React/Vite source, Bun lockfile, Pages workflow, asset-path verifier and favicon available. | Runtime browser behavior and Pages publication must be checked after PR deployment |
+| Web deployment | GitHub Pages served the project path and SVG favicon. Chrome smoke testing on 29 October 2026 confirmed all eight sections render, architecture search/detail navigation, theme switching, local roadmap persistence/reset, and SVG/PNG export success messages. | Independently inspect exported file contents and verify browser/device accessibility and responsive layouts across engines; repeat after every deployment |
 
 ### Changes incorporated in this audit
 
@@ -27,6 +27,7 @@
 - Replaced misleading copy/paste shell examples with read-only inspection and MLX-managed network discovery steps. Do not blindly change Metal memory sysctls.
 - Corrected the conceptual embedding-to-Qdrant data path, removed duplicated global ResizeObserver suppression, and added code/data integrity and favicon tests.
 - Kept all dynamic metrics **synthetic** and the site explicitly **planning-only**.
+- Second-pass browser testing corrected remaining misleading shared-memory, failover, model-category, and two-node topology copy. Unused server/Gemini/runtime dependencies were removed from the static site manifest.
 
 ## Hardware acceptance checklist
 
@@ -90,6 +91,19 @@ VITE_BASE_PATH=/AI-Lab-Overview/ node scripts/verify-pages-build.mjs
 ```
 
 The built-asset verifier checks the mount point, generated JS/CSS, local asset base paths, existence of the favicon, and replacement of Vite's `%BASE_URL%` placeholder. Unit tests cover architecture data references and computations. Neither suite establishes physical compatibility.
+
+### Browser smoke checklist
+
+- [ ] From the deployed Pages URL, navigate all eight sections and confirm the lazy-loaded views appear without application errors.
+- [ ] Verify favicon at `/AI-Lab-Overview/favicon.svg` and confirm the site title, CSS, and fonts load without broken paths.
+- [ ] Search for `qdrant`, open the result, and inspect its service-detail tabs.
+- [ ] Switch between dark/light modes; reload and confirm browser-local preference persists.
+- [ ] Change one roadmap status; reload to confirm browser-local persistence, then reset all demo statuses.
+- [ ] Toggle independent/distributed modes, filters, telemetry links, cluster tabs, and model-sizing presets.
+- [ ] Export a PNG and an SVG and open both downloads to check visual completeness and resolution.
+- [ ] Check mobile navigation, keyboard focus, readable contrast, and browser console on Chromium, Safari, and Firefox.
+
+The 29 October live-site smoke covered the first five items and observed successful export **status messages**. It did not inspect downloaded binary contents or test non-Chromium/mobile devices.
 
 ## Primary evidence
 

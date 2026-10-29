@@ -10,9 +10,9 @@ import {
 import { ARCHITECTURE_CONFIG } from '../data/architectureData';
 import { InferenceMode, RoadmapItemStatus, ServiceCategory } from '../types/architecture';
 
-test('400B+ Q4 model exceeds single Mac Studio 224GB usable cap in Independent mode but fits comfortably in Distributed mode', () => {
+test('671B total-parameter Q4 MoE exceeds single Mac budget but is a four-rank memory candidate', () => {
   const independentPlan = calculateModelMemoryPlan(
-    450,
+    671,
     'Q4_K_M',
     32768,
     InferenceMode.Independent
@@ -22,7 +22,7 @@ test('400B+ Q4 model exceeds single Mac Studio 224GB usable cap in Independent m
   assert.ok(independentPlan.perNodeAllocatedGb > independentPlan.perNodeUsableCapGb);
 
   const distributedPlan = calculateModelMemoryPlan(
-    450,
+    671,
     'Q4_K_M',
     32768,
     InferenceMode.Distributed,
@@ -40,6 +40,27 @@ test('70B Q8_0 model is a memory-eligible redundant-replica candidate, not prove
   assert.equal(plan.fitStatus, 'comfortable');
   assert.equal(plan.replicaFailoverCandidate, true);
   assert.ok(plan.totalRequiredGb > 75 && plan.totalRequiredGb < 110);
+});
+
+test('235B MoE is categorized by total weights and has different Q4/Q8 single-node outcomes', () => {
+  const categories = ARCHITECTURE_CONFIG.modelCategories;
+  const qwen235 = categories.find((category) => category.exampleModels.some((name) => name.includes('Qwen3-235B')));
+  assert.equal(qwen235?.rangeLabel, '200B–399B');
+  assert.equal(qwen235?.representativeParamsB, 235);
+
+  const q4 = calculateModelMemoryPlan(235, 'Q4_K_M', 8192, InferenceMode.Independent);
+  const q8 = calculateModelMemoryPlan(235, 'Q8_0', 8192, InferenceMode.Independent);
+  assert.notEqual(q4.fitStatus, 'exceeds');
+  assert.equal(q8.fitStatus, 'exceeds');
+  assert.ok(q4.weightsGb > 125 && q4.weightsGb < 150);
+  assert.ok(q8.weightsGb > 240);
+});
+
+test('model size tier labels never place the 32B or 235B examples outside their ranges', () => {
+  const categories = ARCHITECTURE_CONFIG.modelCategories;
+  assert.ok(categories.some((category) => category.rangeLabel === '8B–32B' && category.exampleModels.some((name) => name.includes('Coder-32B'))));
+  assert.ok(categories.some((category) => category.rangeLabel === '200B–399B' && category.exampleModels.some((name) => name.includes('Qwen3-235B'))));
+  assert.ok(!categories.some((category) => category.rangeLabel === '100B–200B' && category.exampleModels.some((name) => name.includes('235B'))));
 });
 
 test('Roadmap defaults all tasks to Not Started (0% completion) and updates accurately with local status overrides', () => {
