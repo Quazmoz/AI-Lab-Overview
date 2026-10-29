@@ -18,7 +18,7 @@ test('400B+ Q4 model exceeds single Mac Studio 224GB usable cap in Independent m
     InferenceMode.Independent
   );
   assert.equal(independentPlan.fitStatus, 'exceeds');
-  assert.equal(independentPlan.failoverAvailable, false);
+  assert.equal(independentPlan.replicaFailoverCandidate, false);
   assert.ok(independentPlan.perNodeAllocatedGb > independentPlan.perNodeUsableCapGb);
 
   const distributedPlan = calculateModelMemoryPlan(
@@ -29,16 +29,16 @@ test('400B+ Q4 model exceeds single Mac Studio 224GB usable cap in Independent m
     4
   );
   assert.equal(distributedPlan.fitStatus, 'comfortable');
-  assert.equal(distributedPlan.failoverAvailable, false);
-  assert.equal(distributedPlan.nodeLayersPct, 25);
+  assert.equal(distributedPlan.replicaFailoverCandidate, false);
+  assert.equal(distributedPlan.estimatedPerNodeSharePercent, 25);
   assert.equal(distributedPlan.usablePoolGb, 896); // 4 nodes * 224 GB
   assert.ok(distributedPlan.perNodeAllocatedGb < distributedPlan.perNodeUsableCapGb);
 });
 
-test('70B Q8_0 model fits comfortably on single node in Independent mode with failover enabled', () => {
+test('70B Q8_0 model is a memory-eligible redundant-replica candidate, not proven HA', () => {
   const plan = calculateModelMemoryPlan(70, 'Q8_0', 16384, InferenceMode.Independent);
   assert.equal(plan.fitStatus, 'comfortable');
-  assert.equal(plan.failoverAvailable, true);
+  assert.equal(plan.replicaFailoverCandidate, true);
   assert.ok(plan.totalRequiredGb > 75 && plan.totalRequiredGb < 110);
 });
 
@@ -114,4 +114,67 @@ test('3 Mac Studio clusters with 4 nodes each provides 3,072 GB Unified Memory a
 
   const totalRam = macNodes.reduce((acc, n) => acc + n.memoryGb, 0);
   assert.equal(totalRam, 3072, 'Total Mac fleet Unified Memory must equal 3,072 GB');
+});
+
+test('architecture inventory has unique IDs and consistent references', () => {
+  const config = ARCHITECTURE_CONFIG;
+  const unique = (values: string[], label: string) =>
+    assert.equal(new Set(values).size, values.length, 'Duplicate ' + label);
+
+  unique(config.macClusters.map((c) => c.id), 'cluster IDs');
+  unique(config.physicalNodes.map((n) => n.id), 'physical node IDs');
+  unique(config.proxmoxVms.map((v) => v.id), 'VM IDs');
+  unique(config.services.map((s) => s.id), 'service IDs');
+  unique(config.connections.map((c) => c.id), 'connection IDs');
+  unique(config.roadmapPhases.flatMap((p) => p.tasks.map((t) => t.id)), 'roadmap task IDs');
+
+  const nodeById = new Map(config.physicalNodes.map((n) => [n.id, n]));
+  const vmById = new Map(config.proxmoxVms.map((v) => [v.id, v]));
+  const serviceById = new Map(config.services.map((s) => [s.id, s]));
+
+  for (const cluster of config.macClusters) {
+    assert.equal(cluster.nodeIds.length, cluster.nodeCount, 'Node count mismatch: ' + cluster.id);
+    assert.equal(cluster.totalRamGb, cluster.nodeCount * cluster.ramPerNodeGb);
+    for (const nodeId of cluster.nodeIds) {
+      const node = nodeById.get(nodeId);
+      assert.ok(node, 'Missing physical node ' + nodeId);
+      assert.equal(node.clusterId, cluster.id);
+      assert.equal(node.memoryGb, cluster.ramPerNodeGb);
+      assert.match(node.vendorModel, /M5 Ultra/);
+    }
+  }
+
+  for (const vm of config.proxmoxVms) {
+    assert.ok(vm.vcpuMin <= vm.vcpuMax, 'Invalid vCPU range: ' + vm.id);
+    assert.ok(vm.ramMinGb <= vm.ramMaxGb, 'Invalid memory range: ' + vm.id);
+    for (const serviceId of vm.serviceIds) {
+      assert.ok(serviceById.has(serviceId), 'VM ' + vm.id + ' references unknown service ' + serviceId);
+    }
+  }
+
+  for (const service of config.services) {
+    if (service.vmId) assert.ok(vmById.has(service.vmId), 'Unknown VM on ' + service.id);
+    if (service.physicalNodeId) assert.ok(nodeById.has(service.physicalNodeId), 'Unknown node on ' + service.id);
+    for (const dependency of service.dependencies) {
+      assert.ok(serviceById.has(dependency), service.id + ' references unknown dependency ' + dependency);
+    }
+  }
+
+  // Cluster nodes in React Flow are aggregate view IDs rather than services.
+  const syntheticGraphIds = new Set(['cluster-c1', 'cluster-c2', 'cluster-c3']);
+  for (const connection of config.connections) {
+    for (const endpoint of [connection.source, connection.target]) {
+      assert.ok(
+        serviceById.has(endpoint) || syntheticGraphIds.has(endpoint),
+        'Unknown graph endpoint ' + endpoint + ' in ' + connection.id
+      );
+    }
+  }
+});
+
+test('MoE sizing uses total stored parameters, not just active parameters', () => {
+  const deepSeek = calculateModelMemoryPlan(671, 'Q4_K_M', 32768, InferenceMode.Distributed, 4);
+  assert.ok(deepSeek.weightsGb > 380, '671B total Q4 weights must not use active params');
+  assert.equal(deepSeek.nodeCount, 4);
+  assert.ok(deepSeek.perNodeAllocatedGb > 95);
 });

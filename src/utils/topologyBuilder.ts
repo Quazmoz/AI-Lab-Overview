@@ -46,7 +46,7 @@ export const CONNECTION_PALETTE: Record<
   [ConnectionStyleType.Rdma]: {
     stroke: '#38bdf8', // Bright blue high-bandwidth: Thunderbolt RDMA
     strokeWidth: 4,
-    label: 'Thunderbolt 5 RDMA Interconnect (80–120 Gbps)',
+    label: 'Thunderbolt 5 JACCL full-mesh links (nominal 80 Gb/s)',
   },
 };
 
@@ -143,7 +143,7 @@ export function buildArchitectureTopologyGraph(
         title: 'Mac Studio AI Compute Fleet (3 Clusters · 12 Nodes · 3,072 GB Unified Memory)',
         subtitle:
           inferenceMode === InferenceMode.Distributed
-            ? 'Mode 1: Distributed Sharded Inference (4-Node TB5 RDMA Rings · 896 GB Usable Pool per Cluster)'
+            ? 'Mode 1: Distributed Candidate (4-Node TB5 JACCL Mesh · 896 GB Estimated Budget per Cluster)'
             : 'Mode 2: Independent Inference (12× 256 GB Replicas · Multi-Cluster Gateway Balancing)',
         accent: 'violet',
         collapsed: zCCollapsed,
@@ -251,7 +251,7 @@ export function buildArchitectureTopologyGraph(
         purpose: 'DeepSeek-V3 MoE / Llama-405B Frontier Models',
         totalRamGb: 1024,
         usablePoolGb: 896,
-        bandwidth: '3.27 TB/s',
+        bandwidth: '4.8 TB/s summed local',
         roleBadge: '4-Way TP Sharded (TB5 RDMA)',
         inferenceMode,
         nodes: [
@@ -309,7 +309,7 @@ export function buildArchitectureTopologyGraph(
         purpose: 'Llama-3.3-70B / Qwen-32B Active Replicas',
         totalRamGb: 1024,
         usablePoolGb: 896,
-        bandwidth: '3.27 TB/s',
+        bandwidth: '4.8 TB/s summed local',
         roleBadge: '4× Active-Active Replicas',
         inferenceMode,
         nodes: [
@@ -367,7 +367,7 @@ export function buildArchitectureTopologyGraph(
         purpose: 'BGE-M3 / Qwen-VL / ColPali & Fine-Tuning',
         totalRamGb: 1024,
         usablePoolGb: 896,
-        bandwidth: '3.27 TB/s',
+        bandwidth: '4.8 TB/s summed local',
         roleBadge: 'Specialized Vector & Vision',
         inferenceMode,
         nodes: [
@@ -774,7 +774,7 @@ export function buildArchitectureTopologyGraph(
       label: showEdgeLabel
         ? isRdma
           ? inferenceMode === InferenceMode.Distributed
-            ? '80–120 Gbps RDMA'
+            ? 'TB5 JACCL mesh'
             : 'Standby Link'
           : conn.label
         : undefined,

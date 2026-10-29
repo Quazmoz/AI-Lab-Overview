@@ -3,67 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b1220" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <title>Private AI Compute Fabric — On-Premises AI Infrastructure POC</title>
-    <meta name="description" content="Interactive enterprise AI infrastructure architecture explorer and planning console visualizing a hybrid Apple Mac Studio M5 Ultra RDMA cluster and Proxmox VE service platform." />
+    <meta name="description" content="Interactive planning architecture for a proposed M5 Ultra Mac Studio inference fleet and Proxmox AI service platform. Simulated telemetry; no live infrastructure connection." />
     <meta property="og:title" content="Private AI Compute Fabric — On-Premises AI Infrastructure POC" />
-    <meta property="og:description" content="Interactive enterprise AI infrastructure architecture explorer and planning console visualizing a hybrid Apple Mac Studio M5 Ultra RDMA cluster and Proxmox VE service platform." />
+    <meta property="og:description" content="Explore a proposed M5 Ultra inference fleet, Proxmox service plane, security boundaries, and observability. Planning data and synthetic telemetry." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script>
-      (function() {
-        if (typeof window !== 'undefined') {
-          if ('ResizeObserver' in window) {
-            var NativeResizeObserver = window.ResizeObserver;
-            window.ResizeObserver = function SafeResizeObserver(callback) {
-              return new NativeResizeObserver(function(entries, observer) {
-                window.requestAnimationFrame(function() {
-                  callback(entries, observer);
-                });
-              });
-            };
-            window.ResizeObserver.prototype = NativeResizeObserver.prototype;
-          }
-
-          function isResizeError(msg) {
-            return typeof msg === 'string' && (
-              msg.indexOf('ResizeObserver loop completed with undelivered notifications') !== -1 ||
-              msg.indexOf('ResizeObserver loop limit exceeded') !== -1 ||
-              msg.indexOf('ResizeObserver') !== -1
-            );
-          }
-
-          window.addEventListener('error', function(event) {
-            var msg = event.message || (event.error && event.error.message);
-            if (isResizeError(msg)) {
-              event.stopImmediatePropagation();
-              event.preventDefault();
-              return true;
-            }
-          }, true);
-
-          window.addEventListener('unhandledrejection', function(event) {
-            var msg = (event.reason && event.reason.message) || String(event.reason || '');
-            if (isResizeError(msg)) {
-              event.stopImmediatePropagation();
-              event.preventDefault();
-              return true;
-            }
-          }, true);
-
-          var origOnError = window.onerror;
-          window.onerror = function(message, source, lineno, colno, error) {
-            var msg = (typeof message === 'string') ? message : (error && error.message);
-            if (isResizeError(msg)) {
-              return true;
-            }
-            if (typeof origOnError === 'function') {
-              return origOnError.apply(this, arguments);
-            }
-            return false;
-          };
-        }
-      })();
-    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />

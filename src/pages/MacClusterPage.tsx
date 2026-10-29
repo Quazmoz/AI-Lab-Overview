@@ -41,7 +41,8 @@ const MODEL_PRESETS: Array<{ label: string; paramsB: number; category: string }>
   { label: 'Qwen3-30B-A3B / Coder-32B (30B)', paramsB: 30, category: '8B–30B' },
   { label: 'Llama-3.3-70B-Instruct (70B)', paramsB: 70, category: '70B' },
   { label: 'Mistral-Large / Command-A (150B)', paramsB: 150, category: '100B–200B' },
-  { label: 'Llama-405B / DeepSeek-V3 MoE (450B eq.)', paramsB: 450, category: '400B+' },
+  { label: 'Llama-3.1-405B (405B total)', paramsB: 405, category: '400B+' },
+  { label: 'DeepSeek-V3 MoE (671B total)', paramsB: 671, category: '400B+' },
 ];
 
 const CONTEXT_OPTIONS = [
@@ -61,7 +62,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
   const clusters = config.macClusters || [];
 
   const [selectedClusterId, setSelectedClusterId] = useState<string>('mac-cluster-01');
-  const [selectedParamsB, setSelectedParamsB] = useState<number>(450);
+  const [selectedParamsB, setSelectedParamsB] = useState<number>(671);
   const [quantization, setQuantization] = useState<QuantizationPrecision>('Q4_K_M');
   const [contextTokens, setContextTokens] = useState<number>(32768);
 
@@ -74,7 +75,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
     return allMacNodes.filter((n) => n.clusterId === selectedClusterId);
   }, [allMacNodes, selectedClusterId, isFleetOverview]);
 
-  // Memory plan calculated for 4 nodes per cluster in distributed mode
+  // Illustrative single-model plan: distributed inference is scoped to four peers.
   const memoryPlan = useMemo(
     () =>
       calculateModelMemoryPlan(
@@ -90,8 +91,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
   // Bar chart data for the current 4 nodes (or all 12 nodes in fleet view)
   const chartData = useMemo(() => {
     const nodesToChart = isFleetOverview ? allMacNodes : currentClusterNodes;
-    const count = Math.max(1, nodesToChart.length);
-    const perNodeFactor = inferenceMode === InferenceMode.Distributed ? 1 / (isFleetOverview ? 12 : 4) : 1;
+    const perNodeFactor = inferenceMode === InferenceMode.Distributed ? 1 / 4 : 1;
 
     const weights = Number((memoryPlan.weightsGb * perNodeFactor).toFixed(1));
     const kvCache = Number((memoryPlan.kvCacheGb * perNodeFactor).toFixed(1));
@@ -123,10 +123,10 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
             <span className="text-cyan-400">3 Clusters · 12 Nodes · 3,072 GB Unified Memory</span>
           </div>
           <h2 className="mt-1 text-lg font-semibold text-foreground">
-            Mac Studio M4 Ultra Compute Fleet & Thunderbolt 5 RDMA Fabric
+            Mac Studio M5 Ultra Compute Fleet & Thunderbolt 5 RDMA Fabric
           </h2>
           <p className="mt-1 text-xs text-muted-foreground max-w-3xl leading-relaxed">
-            Three dedicated 4-node clusters (1,024 GB Unified Memory each, 256 GB per Mac) interconnected by point-to-point 80–120 Gbps Thunderbolt 5 RDMA rings for 4-way tensor sharding or 12× independent high-throughput replicas.
+            Three proposed 4-node clusters (1,024 GB unified memory each, 256 GB per Mac). Each JACCL mesh needs six direct Thunderbolt 5 cables; model support, effective bandwidth and throughput require hardware validation.
           </p>
         </div>
 
@@ -147,7 +147,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
             )}
           >
             <Layers className="h-3.5 w-3.5" />
-            Distributed (TP=4 / PP=4)
+            Distributed (4 ranks)
           </button>
           <button
             type="button"
@@ -293,11 +293,11 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                 </div>
                 <div className="flex justify-between gap-1">
                   <span className="text-muted-foreground">Bandwidth</span>
-                  <span className="font-mono text-foreground">819–1,092 GB/s</span>
+                  <span className="font-mono text-foreground">1.2 TB/s rated</span>
                 </div>
                 <div className="flex justify-between gap-1">
                   <span className="text-muted-foreground">Processor</span>
-                  <span className="text-right text-foreground truncate">Apple M4 Ultra (32-core)</span>
+                  <span className="text-right text-foreground truncate">Apple M5 Ultra (36-core)</span>
                 </div>
                 <div className="flex justify-between gap-1">
                   <span className="text-muted-foreground">GPU (Metal 3)</span>
@@ -308,7 +308,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                   <span className="font-mono text-cyan-400">{node.computeIp}</span>
                 </div>
                 <div className="flex justify-between gap-1">
-                  <span className="text-muted-foreground">TB5 RDMA Ring</span>
+                  <span className="text-muted-foreground">TB5 RDMA Mesh</span>
                   <span className="font-mono text-sky-400">
                     {activeCluster?.tb5Subnet.replace('.0/24', `.${idx + 1}`)}
                   </span>
@@ -330,8 +330,8 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                     </div>
                     <div className="text-muted-foreground mt-0.5">
                       {inferenceMode === InferenceMode.Distributed
-                        ? `Transformer Layers ${idx * 20 + 1}–${(idx + 1) * 20} (25% split)`
-                        : 'Complete full model instance with local failover'}
+                        ? 'Illustrative 25% tensor/weight allocation; model-specific'
+                        : 'Complete replica; gateway failover requires testing'}
                     </div>
                   </div>
                 </div>
@@ -352,38 +352,21 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <span>Thunderbolt 5 Point-to-Point 4-Node Ring Interconnect</span>
+                    <span>Thunderbolt 5 Point-to-Point 4-Node Full Mesh</span>
                     <span className="rounded bg-sky-500/20 px-2 py-0.5 font-mono text-[10px] text-sky-300">
-                      80–120 Gbps Bi-Directional
+                      80 Gb/s nominal · RDMA TBD
                     </span>
                   </h3>
                   <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">
-                    Direct USB-C / Thunderbolt 5 mesh fabric connecting all 4 nodes in {activeCluster.name} on subnet{' '}
-                    <code className="font-mono text-sky-300">{activeCluster.tb5Subnet}</code>. Enables zero-copy Metal tensor parallelism (`mlx.core.distributed`) without crossing Ethernet switches.
+                    Six Thunderbolt 5 cables connect every pair of Macs in {activeCluster.name}. Each cable has its own peer interface; JACCL requires macOS 26.2+ and local Recovery-mode enablement. Effective throughput must be benchmarked.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 font-mono text-xs shrink-0 rounded-lg border border-border bg-card/80 p-2.5">
-                <div className="text-center px-2">
-                  <span className="block text-[10px] text-muted-foreground">Node 1</span>
-                  <span className="text-sky-300 font-semibold">.1</span>
-                </div>
+                <span className="text-sky-300 font-semibold">4 nodes · 6 direct links</span>
                 <ArrowLeftRight className="h-3.5 w-3.5 text-sky-400" />
-                <div className="text-center px-2">
-                  <span className="block text-[10px] text-muted-foreground">Node 2</span>
-                  <span className="text-sky-300 font-semibold">.2</span>
-                </div>
-                <ArrowLeftRight className="h-3.5 w-3.5 text-sky-400" />
-                <div className="text-center px-2">
-                  <span className="block text-[10px] text-muted-foreground">Node 3</span>
-                  <span className="text-sky-300 font-semibold">.3</span>
-                </div>
-                <ArrowLeftRight className="h-3.5 w-3.5 text-sky-400" />
-                <div className="text-center px-2">
-                  <span className="block text-[10px] text-muted-foreground">Node 4</span>
-                  <span className="text-sky-300 font-semibold">.4</span>
-                </div>
+                <span className="text-muted-foreground">3 peers per node</span>
               </div>
             </div>
           </CardContent>
@@ -413,7 +396,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">TB5 RDMA Interconnect</span>
-                    <span className="font-mono text-sky-400">80–120 Gbps Ring</span>
+                    <span className="font-mono text-sky-400">Full mesh · 6 cables</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">VLAN Subnet</span>
@@ -562,7 +545,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
               </div>
               <div>
                 <div className="text-[10px] font-sans text-muted-foreground">
-                  {inferenceMode === InferenceMode.Distributed ? 'Per-Node (TP=4)' : 'Single Node Required'}
+                  {inferenceMode === InferenceMode.Distributed ? 'Per-Node (4 ranks)' : 'Single Node Required'}
                 </div>
                 <div
                   className={cn(
@@ -607,10 +590,10 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                   </span>
                 ) : (
                   <span>
-                    <strong>Fits Within 4-Node Cluster ({memoryPlan.utilizationPercent}% of usable per-node limit):</strong>{' '}
+                    <strong>Estimated Memory Fit ({memoryPlan.utilizationPercent}% of assumed per-node budget):</strong>{' '}
                     {inferenceMode === InferenceMode.Distributed
-                      ? `Sharded evenly across the 4 nodes (${memoryPlan.perNodeAllocatedGb} GB per Mac Studio). All 4 nodes communicate via Thunderbolt 5 RDMA.`
-                      : `Each Mac Studio node hosts a full ${memoryPlan.totalRequiredGb} GB model instance with active-active gateway load balancing.`}
+                      ? `An even four-way split suggests ${memoryPlan.perNodeAllocatedGb} GB per Mac Studio; actual rank placement and KV cache depend on MLX and the model.`
+                      : `Each Mac Studio could host a ${memoryPlan.totalRequiredGb} GB instance if the model and concurrency fit after measurement.`}
                   </span>
                 )}
               </div>
@@ -620,11 +603,11 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
             <div className="space-y-2.5 pt-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-foreground">
-                  4-Node Layer & Tensor Distribution
+                  Illustrative 4-Node Weight Distribution
                 </span>
                 <span className="font-mono text-[11px] text-muted-foreground">
                   {inferenceMode === InferenceMode.Distributed
-                    ? 'Partitioned 4× 25% via TB5 RDMA'
+                    ? 'Assumed equal 4× 25% shards'
                     : '100% Replicated on Each Node'}
                 </span>
               </div>
@@ -651,7 +634,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                                 : 'bg-muted/50 border border-border text-muted-foreground/40'
                             )}
                           >
-                            L{b}
+                            S{b}
                           </div>
                         ))}
                       </div>
@@ -668,7 +651,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
           <CardHeader>
             <CardTitle>Unified Memory Allocation Per Node (GB)</CardTitle>
             <CardDescription>
-              Allocation across nodes against the 256 GB hardware ceiling (224 GB wired Metal limit + 32 GB macOS reserve).
+              Estimated allocation against a proposed 224 GB/node usable budget; real wired limits, KV cache, and memory pressure depend on the macOS build and model.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 min-h-[300px]">
@@ -756,7 +739,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                       )}
                     </td>
                     <td className="py-3 px-4 font-mono whitespace-nowrap text-foreground">
-                      <span className="text-emerald-400 font-medium">Comfortable Fit</span>
+                      <span className="text-amber-400 font-medium">Validate on hardware</span>
                     </td>
                     <td className="py-3 pl-4 text-muted-foreground max-w-md leading-relaxed font-mono">
                       {idx === 0
@@ -765,7 +748,7 @@ export const MacClusterPage: React.FC<MacClusterPageProps> = ({
                           ? 'Cluster 2 (Replicas) or Cluster 3 (Vision)'
                           : idx === 2
                             ? 'Cluster 1 (Sharded) or Cluster 2'
-                            : 'Cluster 1 (4-Way Sharded TP=4 / PP=4)'}
+                            : 'Cluster 1 (four-rank distributed candidate)'}
                     </td>
                   </tr>
                 ))}

@@ -197,9 +197,11 @@ function TopologyInner({
   }, [inferenceMode]);
 
   useEffect(() => {
-    if (exportTriggerRef) {
-      exportTriggerRef.current = exportDiagram;
-    }
+    if (!exportTriggerRef) return;
+    exportTriggerRef.current = exportDiagram;
+    return () => {
+      if (exportTriggerRef.current === exportDiagram) exportTriggerRef.current = null;
+    };
   }, [exportDiagram, exportTriggerRef]);
 
   return (

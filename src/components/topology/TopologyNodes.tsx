@@ -672,14 +672,14 @@ export const MacClusterGroupNode: React.FC<NodeProps> = ({ data }) => {
         ))}
       </div>
 
-      {/* Thunderbolt 5 RDMA 4-Node Ring Interconnect Callout */}
+      {/* Thunderbolt 5 JACCL 4-node full-mesh interconnect callout */}
       <div className="mt-2.5 flex items-center justify-between rounded-md border border-sky-500/30 bg-sky-950/20 px-2.5 py-1.5 text-[10px]">
         <div className="flex items-center gap-1.5 text-sky-300 font-medium">
           <Zap className="h-3 w-3 text-sky-400 shrink-0" />
-          <span>TB5 4-Node Ring (80–120 Gbps)</span>
+          <span>TB5 full mesh · 6 links · RDMA planned</span>
         </div>
         <span className="font-mono text-[9px] text-sky-400">
-          {d.inferenceMode === InferenceMode.Distributed ? 'All-Reduce Active' : 'Standby HA'}
+          {d.inferenceMode === InferenceMode.Distributed ? 'JACCL Planned' : 'Links Reserved'}
         </span>
       </div>
 

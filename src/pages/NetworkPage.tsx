@@ -217,7 +217,7 @@ export const NetworkPage: React.FC<NetworkPageProps> = ({ config }) => {
                 10GbE: mac-ai-c1-01..04
               </div>
               <div className="text-[10px] font-mono text-sky-400">
-                TB5 4-Node Ring (80–120 Gbps)
+                TB5 4-Node Full Mesh (6 Cables)
               </div>
             </div>
           ),
@@ -245,7 +245,7 @@ export const NetworkPage: React.FC<NetworkPageProps> = ({ config }) => {
                 10GbE: mac-ai-c2-01..04
               </div>
               <div className="text-[10px] font-mono text-sky-400">
-                TB5 4-Node Ring (80–120 Gbps)
+                TB5 4-Node Full Mesh (6 Cables)
               </div>
             </div>
           ),
@@ -273,7 +273,7 @@ export const NetworkPage: React.FC<NetworkPageProps> = ({ config }) => {
                 10GbE: mac-ai-c3-01..04
               </div>
               <div className="text-[10px] font-mono text-sky-400">
-                TB5 4-Node Ring (80–120 Gbps)
+                TB5 4-Node Full Mesh (6 Cables)
               </div>
             </div>
           ),
@@ -295,13 +295,13 @@ export const NetworkPage: React.FC<NetworkPageProps> = ({ config }) => {
           label: (
             <div className="text-left space-y-1">
               <div className="text-[10px] font-mono font-semibold text-sky-300">
-                Physically Isolated TB5 RDMA Rings
+                Physically Isolated TB5 RDMA Meshes
               </div>
               <div className="text-xs font-semibold text-white">
                 3× Intra-Cluster 4-Node Fabrics
               </div>
               <div className="text-[10px] font-mono text-sky-200/80">
-                80–120 Gbps Direct Cable · Bypasses Core Switch
+                6 Cables per Cluster · Bypasses Core Switch
               </div>
             </div>
           ),
@@ -441,7 +441,7 @@ export const NetworkPage: React.FC<NetworkPageProps> = ({ config }) => {
             Segmented Ethernet VLANs + Dedicated Out-of-Band Thunderbolt 5 RDMA
           </h2>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Standard management, service APIs, inference requests, and storage backups traverse four firewall-enforced 802.1Q Ethernet VLANs, whereas inter-Mac distributed tensor traffic runs over a physically separate point-to-point Thunderbolt 5 RDMA link.
+            Proposed management, service APIs, inference requests, and backups traverse four firewall-enforced Ethernet VLANs. Distributed JACCL traffic uses a separate six-link full mesh per 4-node cluster; cross-node bandwidth and latency are not yet measured.
           </p>
         </div>
 

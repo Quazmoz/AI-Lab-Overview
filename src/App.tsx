@@ -24,13 +24,13 @@ import {
 } from '@/src/types/architecture';
 import { computeRoadmapProgress } from '@/src/utils/architectureLogic';
 import { OverviewPage } from '@/src/pages/OverviewPage';
-import { TopologyPage } from '@/src/pages/TopologyPage';
-import { MacClusterPage } from '@/src/pages/MacClusterPage';
-import { ProxmoxPage } from '@/src/pages/ProxmoxPage';
-import { ServicesPage } from '@/src/pages/ServicesPage';
-import { ObservabilityPage } from '@/src/pages/ObservabilityPage';
-import { NetworkPage } from '@/src/pages/NetworkPage';
-import { RoadmapPage } from '@/src/pages/RoadmapPage';
+const TopologyPage = React.lazy(() => import('@/src/pages/TopologyPage').then((m) => ({ default: m.TopologyPage })));
+const MacClusterPage = React.lazy(() => import('@/src/pages/MacClusterPage').then((m) => ({ default: m.MacClusterPage })));
+const ProxmoxPage = React.lazy(() => import('@/src/pages/ProxmoxPage').then((m) => ({ default: m.ProxmoxPage })));
+const ServicesPage = React.lazy(() => import('@/src/pages/ServicesPage').then((m) => ({ default: m.ServicesPage })));
+const ObservabilityPage = React.lazy(() => import('@/src/pages/ObservabilityPage').then((m) => ({ default: m.ObservabilityPage })));
+const NetworkPage = React.lazy(() => import('@/src/pages/NetworkPage').then((m) => ({ default: m.NetworkPage })));
+const RoadmapPage = React.lazy(() => import('@/src/pages/RoadmapPage').then((m) => ({ default: m.RoadmapPage })));
 import { ServiceDetailSheet } from '@/src/components/ServiceDetailSheet';
 import { CommandSearchDialog } from '@/src/components/CommandSearchDialog';
 import { Button } from '@/src/components/ui/button';
@@ -80,6 +80,7 @@ export function App() {
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [globalExportError, setGlobalExportError] = useState<string | null>(null);
 
   const [isDark, setIsDark] = useState<boolean>(() => {
     try {
@@ -165,17 +166,24 @@ export function App() {
 
   const handleGlobalExport = useCallback(
     async (format: 'png' | 'svg') => {
+      setGlobalExportError(null);
       if (
         activeNav !== NavSection.Overview &&
         activeNav !== NavSection.Topology
       ) {
         setActiveNav(NavSection.Topology);
-        window.setTimeout(() => {
-          exportTriggerRef.current?.(format);
-        }, 450);
-      } else {
-        await exportTriggerRef.current?.(format);
       }
+
+      // Route chunks load asynchronously: wait for the mounted canvas to install
+      // its export handler, instead of racing it with a fixed 450 ms timeout.
+      for (let attempt = 0; attempt < 50; attempt++) {
+        if (exportTriggerRef.current) {
+          await exportTriggerRef.current(format);
+          return;
+        }
+        await new Promise<void>((resolve) => window.setTimeout(resolve, 100));
+      }
+      setGlobalExportError('Topology is still loading. Please retry the export.');
     },
     [activeNav]
   );
@@ -328,6 +336,7 @@ export function App() {
 
           {/* Right Header Controls: Architecture Search, Theme Toggle, Export Diagram */}
           <div className="flex items-center gap-2 shrink-0">
+            {globalExportError && <span role="alert" className="text-xs text-amber-400">{globalExportError}</span>}
             <Button
               variant="outline"
               size="sm"
@@ -385,6 +394,7 @@ export function App() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.14, ease: [0.16, 1, 0.3, 1] }}
           >
+            <React.Suspense fallback={<div role="status" className="p-6 text-sm text-muted-foreground">Loading architecture view…</div>}>
               {activeNav === NavSection.Overview && (
                 <OverviewPage
                   config={config}
@@ -453,6 +463,7 @@ export function App() {
                   onResetRoadmap={handleResetRoadmap}
                 />
               )}
+            </React.Suspense>
           </motion.div>
         </main>
       </div>
