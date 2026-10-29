@@ -13,6 +13,7 @@
 | MLX-LM inference | MLX documents distributed inference and JACCL tools. | Compatibility of chosen checkpoints, multi-rank HTTP serving, 64K/128K contexts, tool calls and concurrent workloads |
 | Model-memory calculator | Weight estimate uses total stored parameters; tests cover 671B MoE sizing and four-rank arithmetic. | Actual model formats, tensor distribution, runtime overhead and KV cache |
 | Proxmox service plane | Static inventory of 6 VMs, allocation totals and reference IDs covered by tests. | Deployed host, backups, failover, security configuration and integrations |
+| Optional Docker/Kubernetes service placements | Service eligibility and fallback are modeled for Linux VM workloads, with regression assertions. Kubernetes is not in the physical topology or six-VM capacity totals. | Cluster provisioning, CNI/RBAC/network policy, durable storage, images, backups, operational sizing and recovery |
 | Network | VLAN and isolated Thunderbolt design documented; addresses redacted. | Switch/port configuration, firewall policy, routing, cable mapping |
 | Observability | Synthetic OTel/Prometheus/Loki/Tempo/Grafana examples present. | Live scraping, logs, trace propagation, retention and alert routing |
 | Web deployment | GitHub Pages served the project path and SVG favicon. Chrome smoke testing on 29 October 2026 confirmed all eight sections render, architecture search/detail navigation, theme switching, local roadmap persistence/reset, and SVG/PNG export success messages. | Independently inspect exported file contents and verify browser/device accessibility and responsive layouts across engines; repeat after every deployment |
@@ -94,16 +95,18 @@ The built-asset verifier checks the mount point, generated JS/CSS, local asset b
 
 ### Browser smoke checklist
 
-- [ ] From the deployed Pages URL, navigate all eight sections and confirm the lazy-loaded views appear without application errors.
+- [ ] From the deployed Pages URL, navigate all nine sections and confirm the lazy-loaded views appear without application errors.
 - [ ] Verify favicon at `/AI-Lab-Overview/favicon.svg` and confirm the site title, CSS, and fonts load without broken paths.
 - [ ] Search for `qdrant`, open the result, and inspect its service-detail tabs.
+- [ ] On Docker & Kubernetes Options, switch VM/Compose/Kubernetes. Verify only eligible Linux workloads change candidate runtime, PostgreSQL/Redis/Qdrant and telemetry state remain VM-hosted for Kubernetes, and Mac inference never appears as a container placement.
+- [ ] From the Services inventory and service detail sheets, inspect runtime eligibility for LiteLLM, n8n, PostgreSQL, Qdrant and MLX inference; confirm baseline host labels stay accurate.
 - [ ] Switch between dark/light modes; reload and confirm browser-local preference persists.
 - [ ] Change one roadmap status; reload to confirm browser-local persistence, then reset all demo statuses.
 - [ ] Toggle independent/distributed modes, filters, telemetry links, cluster tabs, and model-sizing presets.
 - [ ] Export a PNG and an SVG and open both downloads to check visual completeness and resolution.
 - [ ] Check mobile navigation, keyboard focus, readable contrast, and browser console on Chromium, Safari, and Firefox.
 
-The 29 October live-site smoke covered the first five items and observed successful export **status messages**. It did not inspect downloaded binary contents or test non-Chromium/mobile devices.
+The earlier 29 October live-site smoke covered the original eight-section site and observed successful export **status messages**. It did not test the new optional runtime comparison page, inspect downloaded binary contents, or test non-Chromium/mobile devices. Repeat the expanded checklist after deploying this change.
 
 ## Primary evidence
 

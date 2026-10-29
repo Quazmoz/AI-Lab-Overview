@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Activity,
   Boxes,
+  Container,
   CheckSquare,
   Cpu,
   Download,
@@ -28,6 +29,7 @@ const TopologyPage = React.lazy(() => import('@/src/pages/TopologyPage').then((m
 const MacClusterPage = React.lazy(() => import('@/src/pages/MacClusterPage').then((m) => ({ default: m.MacClusterPage })));
 const ProxmoxPage = React.lazy(() => import('@/src/pages/ProxmoxPage').then((m) => ({ default: m.ProxmoxPage })));
 const ServicesPage = React.lazy(() => import('@/src/pages/ServicesPage').then((m) => ({ default: m.ServicesPage })));
+const WorkloadDeploymentPage = React.lazy(() => import('@/src/pages/WorkloadDeploymentPage').then((m) => ({ default: m.WorkloadDeploymentPage })));
 const ObservabilityPage = React.lazy(() => import('@/src/pages/ObservabilityPage').then((m) => ({ default: m.ObservabilityPage })));
 const NetworkPage = React.lazy(() => import('@/src/pages/NetworkPage').then((m) => ({ default: m.NetworkPage })));
 const RoadmapPage = React.lazy(() => import('@/src/pages/RoadmapPage').then((m) => ({ default: m.RoadmapPage })));
@@ -61,6 +63,7 @@ const NAV_ITEMS: Array<{
   { id: NavSection.Topology, label: 'Architecture Topology', icon: Share2 },
   { id: NavSection.MacCluster, label: 'Mac Studio Cluster', icon: Cpu },
   { id: NavSection.Proxmox, label: 'Proxmox Infrastructure', icon: HardDrive },
+  { id: NavSection.Workloads, label: 'Docker & Kubernetes Options', icon: Container },
   { id: NavSection.Services, label: 'Services & Dependencies', icon: Boxes },
   { id: NavSection.Observability, label: 'Observability', icon: Activity },
   { id: NavSection.Network, label: 'Network Architecture', icon: Network },
@@ -434,7 +437,12 @@ export function App() {
                 <ProxmoxPage
                   config={config}
                   onSelectService={setSelectedServiceId}
+                  onNavigate={setActiveNav}
                 />
+              )}
+
+              {activeNav === NavSection.Workloads && (
+                <WorkloadDeploymentPage config={config} onSelectService={setSelectedServiceId} />
               )}
 
               {activeNav === NavSection.Services && (

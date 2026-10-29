@@ -10,18 +10,20 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ArchitectureConfig } from '@/src/types/architecture';
+import { ArchitectureConfig, NavSection } from '@/src/types/architecture';
 import { calculateProxmoxTotals } from '@/src/utils/architectureLogic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
 
 interface ProxmoxPageProps {
   config: ArchitectureConfig;
   onSelectService: (serviceId: string) => void;
+  onNavigate: (section: NavSection) => void;
 }
 
 export const ProxmoxPage: React.FC<ProxmoxPageProps> = ({
   config,
   onSelectService,
+  onNavigate,
 }) => {
   const host = config.physicalNodes.find((n) => n.nodeType === 'proxmox-host')!;
   const totals = calculateProxmoxTotals(config.proxmoxVms);
@@ -47,7 +49,7 @@ export const ProxmoxPage: React.FC<ProxmoxPageProps> = ({
               Proxmox VE Environment ({host.hostname})
             </h2>
             <p className="text-xs text-muted-foreground max-w-3xl leading-relaxed">
-              Isolates control plane gateways, workflow queues, relational/vector databases, MCP tool sandboxes, and observability into 6 dedicated KVM virtual machines—keeping Linux operational workloads off the bare-metal Mac Studio inference nodes.
+              Six function-specific KVM VMs define the non-inference Linux service baseline. Docker Compose can run inside these guests; an optional Kubernetes tier would run on separately sized Linux VMs, not on the bare-metal Mac Studio inference nodes.
             </p>
           </div>
 
@@ -70,6 +72,20 @@ export const ProxmoxPage: React.FC<ProxmoxPageProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-cyan-500/25 bg-cyan-500/5 px-5 py-4">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Optional Docker Compose / Kubernetes service plane</h3>
+          <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+            The chart below budgets the six baseline VMs only. Container memory, storage, Kubernetes control-plane/worker nodes,
+            high availability, and extra guest capacity require separate sizing and validation before deployment.
+          </p>
+        </div>
+        <button type="button" onClick={() => onNavigate(NavSection.Workloads)}
+          className="shrink-0 rounded-md border border-cyan-500/40 px-3 py-2 text-xs font-medium text-cyan-300 hover:bg-cyan-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer">
+          Compare runtime options
+        </button>
       </div>
 
       {/* Host Specs + VM Resource Allocation Chart */}

@@ -117,13 +117,16 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             <span>No Live Deployment Connected</span>
           </div>
           <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-foreground">
-            Hybrid Bare-Metal Apple Silicon Compute + Proxmox Virtualized Control Plane
+            Bare-Metal Apple Silicon Inference + Proxmox Linux Services (VMs / Containers)
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Proposes separating LLM inference onto 12 Mac Studio M5 Ultra nodes across three 4-node clusters (3,072 GB total unified memory), with a JACCL-compatible Thunderbolt 5 mesh per cluster. Stateful databases, vector search, automation queues, MCP tooling, and OpenTelemetry observability run on six planned Proxmox VMs.
+            The proposed 12 Mac Studio nodes remain bare-metal MLX inference hosts. Six Proxmox Linux VMs form the baseline for LiteLLM, n8n, PostgreSQL, Redis, Qdrant, MCP tooling and telemetry. Docker Compose on those VMs or an additional Kubernetes-on-Linux-VM tier are optional for eligible non-inference workloads; no container cluster is deployed.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <Button variant="outline" onClick={() => onNavigate(NavSection.Workloads)}>
+            Docker / K8s Options
+          </Button>
           <Button variant="outline" onClick={() => onNavigate(NavSection.Roadmap)}>
             View 5-Phase Roadmap
           </Button>
@@ -224,10 +227,10 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </CardHeader>
           <CardContent className="space-y-2.5 text-xs text-muted-foreground leading-relaxed">
             <p>
-              Six KVM virtual machines on <code className="font-mono text-foreground">pve-ai-host-01</code> segregate ingress (<strong className="text-foreground">LiteLLM</strong>), orchestration (<strong className="text-foreground">n8n</strong>), relational/queue state (<strong className="text-foreground">PostgreSQL + Redis</strong>), RAG (<strong className="text-foreground">Qdrant</strong>), tool connectors (<strong className="text-foreground">MCP</strong>), and monitoring.
+              Six proposed KVM guests on <code className="font-mono text-foreground">pve-ai-host-01</code> isolate ingress (<strong className="text-foreground">LiteLLM</strong>), orchestration (<strong className="text-foreground">n8n</strong>), data (<strong className="text-foreground">PostgreSQL + Redis</strong>), RAG (<strong className="text-foreground">Qdrant</strong>), MCP and monitoring.
             </p>
             <p>
-              Keeping Linux stateful workloads on Proxmox avoids competing with Mac Studio inference workloads for memory, while macOS and MLX still require their own headroom.
+              Optionally run Compose stacks within those Linux VMs or place eligible services in a separately sized Kubernetes tier. Stateful storage, backups, network boundaries and failover need validation; the current VM capacity figures do not include new Kubernetes guests.
             </p>
           </CardContent>
         </Card>

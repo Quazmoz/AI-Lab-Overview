@@ -28,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/components/ui/ta
 import { renderServiceIcon } from '@/src/components/topology/TopologyNodes';
 import { getConnectedGraphIds } from '@/src/utils/architectureLogic';
 import { CONNECTION_PALETTE } from '@/src/utils/topologyBuilder';
+import { getWorkloadDeploymentOption, RUNTIME_LABELS } from '@/src/data/workloadDeployment';
 
 interface ServiceDetailSheetProps {
   serviceId: string | null;
@@ -141,6 +142,7 @@ export const ServiceDetailSheet: React.FC<ServiceDetailSheetProps> = ({
   );
 
   const svcMap = new Map(config.services.map((s) => [s.id, s]));
+  const runtimePlan = directService ? getWorkloadDeploymentOption(directService.id) : null;
 
   return (
     <Sheet open={Boolean(service)} onOpenChange={(open) => !open && onClose()}>
@@ -220,6 +222,27 @@ export const ServiceDetailSheet: React.FC<ServiceDetailSheetProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {runtimePlan && (
+                  <div className="rounded-lg border border-cyan-500/25 bg-cyan-500/5 p-3.5">
+                    <h4 className="text-xs font-semibold text-foreground">Optional Linux Runtime Placements</h4>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {runtimePlan.supportedRuntimes.map((runtime) => (
+                        <span key={runtime} className="rounded-md border border-border bg-card px-2 py-1 text-[11px] text-cyan-300">
+                          {RUNTIME_LABELS[runtime]}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                      Suggested starting point: {RUNTIME_LABELS[runtimePlan.preferredRuntime]}.
+                      {' '}{runtimePlan.considerations}
+                    </p>
+                    <p className="mt-2 text-[11px] text-amber-300">
+                      Planning alternatives only. Docker runs in Linux VMs; Kubernetes needs separately budgeted Linux guests.
+                      The host and resource figures above describe the existing VM baseline.
+                    </p>
+                  </div>
+                )}
 
                 {/* Contextual Architecture Notes */}
                 <div>

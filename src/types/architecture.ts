@@ -3,6 +3,7 @@ export enum NavSection {
   Topology = 'topology',
   MacCluster = 'mac-cluster',
   Proxmox = 'proxmox',
+  Workloads = 'workloads',
   Services = 'services',
   Observability = 'observability',
   Network = 'network',
